@@ -44,3 +44,13 @@ for i in indexes:
 '''
 print("normal : ", indexes)
 print("reversed: ", indexes[::-1]) #지금 배열을 거꾸로 뒤집어서 돌려준다.
+
+
+'''
+[::2] 2의 배수 인덱스만 얻음
+
+주의 : range()만으로는 배열을 얻을 수 없고 list()를 사용해야 함.
+'''
+a = list(range(0, 10, 1))
+print(a)
+print(a[::2])
