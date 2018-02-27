@@ -1,5 +1,5 @@
 CXXFLAGS = -g
-TRACE_FLAGS =  -Wl,-v
+#TRACE_FLAGS =  -Wl,-v
 TARGET = a.out
 CXX = g++
 
