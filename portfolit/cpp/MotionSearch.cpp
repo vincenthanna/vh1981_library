@@ -2,11 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>  
+#include <assert.h> 
+
+#include <iostream> 
 
 //#include <Step/MotionZone.h>
 #include "MotionSearch.h"
+#include "MotionZone.h"
 
+using namespace std;
 using namespace VideoAnalytics;
 
 //if defined below, regard diagonal position as connected.
@@ -88,7 +92,6 @@ MotionSearch::MotionSearch() : _delegate(nullptr)
  */
 void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, char* title)
 {
-    int32_t pixelPos = MBO_PIXEL_COUNT - 1;
     int32_t i, j;
 
     char linebuf[8192];
@@ -96,7 +99,7 @@ void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, char*
 
     char buffer[512];
     memset(buffer,0x0,sizeof(buffer));
-    sprintf(buffer, "[%s] pixelPos=%d\n", title, pixelPos);
+    sprintf(buffer, "[%s]\n", title);
     strcat(linebuf, buffer);
 
     memset(buffer,0x0,sizeof(buffer));
@@ -121,9 +124,9 @@ void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, char*
         strcat(linebuf, buffer);
         for (j=0;j<MOTION_SEARCH_COLUMN_COUNT;j++){
             memset(buffer,0x0,sizeof(buffer));
-            uint32_t backColor = ((calculatedMotionValue[ i*MOTION_SEARCH_COLUMN_COUNT + j ].pixelData[pixelPos])/40);
+            uint32_t backColor = ((calculatedMotionValue[ i*MOTION_SEARCH_COLUMN_COUNT + j ].pixelData)/40);
 
-            sprintf(buffer, "\33[%dm%2x \33[0m", 40+backColor, calculatedMotionValue[ i*MOTION_SEARCH_COLUMN_COUNT + j ].pixelData[pixelPos]);
+            sprintf(buffer, "\33[%dm%2x \33[0m", 40+backColor, calculatedMotionValue[ i*MOTION_SEARCH_COLUMN_COUNT + j ].pixelData);
             strcat(linebuf, buffer);
 
         }
@@ -135,7 +138,7 @@ void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, char*
     sprintf(buffer, "\n");
     strcat(linebuf, buffer);
 
-    fprintf(stderr, linebuf);
+    fprintf(stderr, "%s", linebuf);
 }
 
 
@@ -177,37 +180,26 @@ int MotionSearch::compareMotion(
         for (j=0;j<MOTION_SEARCH_COLUMN_COUNT;j++) {
             pos = i * MOTION_SEARCH_COLUMN_COUNT + j;
             if (motionMask[pos]) {
-                /**
-                 * just save differences to motionData1.
-                 */
-
-                for (int pc = 0; pc < MBO_PIXEL_COUNT; pc++) {
-                    if (motionData1[pos].pixelData[pc] > motionData2[pos].pixelData[pc]) {
-                        motionData1[pos].pixelData[pc] = motionData1[pos].pixelData[pc] - motionData2[pos].pixelData[pc];
-                    }
-                    else {
-                        motionData1[pos].pixelData[pc] = motionData2[pos].pixelData[pc] - motionData1[pos].pixelData[pc];
-                    }
-                }
-
-                unsigned int foundCount = 0;
-                for (int pc = 0; pc < MBO_PIXEL_COUNT; pc++) {
-                    if (motionData1[pos].pixelData[pc] >= threshold) {
-                        //trace("x=%d y=%d index=%d value=%d \n", j, i, pc, motionData1[pos].pixelData[pc]);
-                        foundCount++;
-                    }
-                }
-
-                if (foundCount >= 2) {
-                    detected++;
-                    motionData1[pos].pixelData[0] = 0xFF;
+                
+                // just save differences to motionData1.
+                if (motionData1[pos].pixelData > motionData2[pos].pixelData) {
+                    motionData1[pos].pixelData = motionData1[pos].pixelData - motionData2[pos].pixelData;
                 }
                 else {
-                    motionData1[pos].pixelData[0] = 0x00;
+                    motionData1[pos].pixelData = motionData2[pos].pixelData - motionData1[pos].pixelData;
+                }
+
+                if (motionData1[pos].pixelData >= threshold) {
+                    //trace("x=%d y=%d index=%d value=%d \n", j, i, pc, motionData1[pos].pixelData[pc]);
+                    detected++;
+                    motionData1[pos].pixelData = 0xFF;
+                }
+                else {
+                    motionData1[pos].pixelData = 0x00;
                 }
             }
             else { //unselected motion area.
-                motionData1[pos].pixelData[0] = 0x00;
+                motionData1[pos].pixelData = 0x00;
             }
         }
     }
@@ -250,7 +242,7 @@ int MotionSearch::checkConnectedComponent(MotionBlockObject* motionDataDifferenc
             // get position.
             blkPos = blkRow * MOTION_SEARCH_COLUMN_COUNT + blkCol;
 
-            if (motionDataDifference[blkPos].pixelData[0]) {   // movement detected, threshold exceeded and in motion map area.
+            if (motionDataDifference[blkPos].pixelData) {   // movement detected, threshold exceeded and in motion map area.
                 if (!motionMapGroup[ blkPos ]) {    // not checked for other group yet.
 
                     // init stackTemporary, stackFinal;
@@ -286,14 +278,15 @@ int MotionSearch::checkConnectedComponent(MotionBlockObject* motionDataDifferenc
                             tmpValue = (curBlkRow << 16) | curBlkCol;
 
                             // check position :
-                            if (curBlkRow < 0 || curBlkCol < 0 || curBlkRow >= MOTION_SEARCH_ROW_COUNT || curBlkCol >= MOTION_SEARCH_COLUMN_COUNT )
+                            if (curBlkRow >= MOTION_SEARCH_ROW_COUNT || curBlkCol >= MOTION_SEARCH_COLUMN_COUNT ) {
                                 continue;
+                            }
 
                             /*
                              * if current position doesn't belong to any group and not in immediate stack,.
                              * push it to temporary stack.
                              */
-                            if (motionDataDifference[curBlkPos].pixelData[0] &&      // if threshold exceeded & motion mask checked.
+                            if (motionDataDifference[curBlkPos].pixelData &&      // if threshold exceeded & motion mask checked.
                                     !motionMapGroup[curBlkPos] &&       // if not grouped.
                                     !findInArrayUINT(tmpValue, stackTemporary, stackTemporaryTop) &&        // if not in stackTemporary.
                                     !findInArrayUINT(tmpValue, stackFinal, stackFinalTop)) {                // if not in stackFinal.
@@ -394,8 +387,8 @@ void MotionSearch::doMotionSearch(
         bool motionNew,                    // motion search start or ongoing.
         uint32_t frameTime,                    // segmentId, time, tick needed when motion detected.
         unsigned int *detected,            // if detected, set to 1 inside.
-        MCP_MOTION *motionData             // if detected, it's used by caller.
-        )
+        MotionResult *results             // if detected, it's used by caller.
+    )
 {
     bool resolutionChanged = false;
     int result;
@@ -422,23 +415,24 @@ void MotionSearch::doMotionSearch(
         lastDetectedFrameTime = 0;
 
         // init motionMask.
-        ::memset(inputMotionMask, 0x0, sizeof(inputMotionMask));
+        //::memset(inputMotionMask, 0x0, sizeof(inputMotionMask));
 
         // init masked block count.
-        maskedBlockCount = 0;
+        //maskedBlockCount = 0;
 
         // convert motionMask(bit array) into byte array.
-        for (i=0 ; i < MOTION_SEARCH_ROW_COUNT ; i++) {
-            for (j=0; j < MOTION_SEARCH_COLUMN_COUNT; j++) {
-                inputMotionMask[i * MOTION_SEARCH_COLUMN_COUNT + (MOTION_SEARCH_COLUMN_COUNT-1)-j] = getFlag( (unsigned char*)(motionOptions->motionMask), i * MOTION_SEARCH_COLUMN_COUNT + j);
+        // for (i=0 ; i < MOTION_SEARCH_ROW_COUNT ; i++) {
+        //     for (j=0; j < MOTION_SEARCH_COLUMN_COUNT; j++) {
+        //         inputMotionMask[i * MOTION_SEARCH_COLUMN_COUNT + (MOTION_SEARCH_COLUMN_COUNT-1)-j] = \
+        //             getFlag((unsigned char*)(motionOptions->motionMask), i * MOTION_SEARCH_COLUMN_COUNT + j);
 
-                // for museum search. museum search set motionMinBlocks to.
-                // 80% of masked block count.
-                if (inputMotionMask[i * MOTION_SEARCH_COLUMN_COUNT + (MOTION_SEARCH_COLUMN_COUNT-1)-j]) {
-                    maskedBlockCount++;
-                }
-            }
-        }
+        //         // for museum search. museum search set motionMinBlocks to.
+        //         // 80% of masked block count.
+        //         if (inputMotionMask[i * MOTION_SEARCH_COLUMN_COUNT + (MOTION_SEARCH_COLUMN_COUNT-1)-j]) {
+        //             maskedBlockCount++;
+        //         }
+        //     }
+        // }
 
 #if 0
         {
@@ -465,7 +459,7 @@ void MotionSearch::doMotionSearch(
         }
 #endif
 
-        _delegate->getBlockAvg(vo_buffer, curMotionAvgValue, width, height, stride, inputMotionMask);
+        _delegate->getBlockAvg(vo_buffer, curMotionAvgValue, width, height, stride);
 
         // in museum search, refMotionAvgValue holds first frame data and  preserved during search.
         ::memcpy(refMotionAvgValue, curMotionAvgValue, sizeof(refMotionAvgValue));
@@ -473,14 +467,14 @@ void MotionSearch::doMotionSearch(
     }
     else if ( lastDetectedFrameTime == frameTime) {
         // 초 단위로 check하므로, 이미 움직임을 확인했으면 다음 초가 될 때까지 데이터 업데이트만 하고 넘긴다.
-        if (motionOptions->motionMode == MOTION_SEARCH) {
-            _delegate->getBlockAvg(vo_buffer, refMotionAvgValue, width, height, stride, inputMotionMask);
-        }
+
+        _delegate->getBlockAvg(vo_buffer, refMotionAvgValue, width, height, stride);
+
         return;
     }
 
     // get block Y value from current frame.
-    _delegate->getBlockAvg(vo_buffer, curMotionAvgValue, width, height, stride, inputMotionMask);
+    _delegate->getBlockAvg(vo_buffer, curMotionAvgValue, width, height, stride);
     //dumpMotionMap(curMotionAvgValue, "current");
 
     /**
@@ -491,30 +485,13 @@ void MotionSearch::doMotionSearch(
 
     unsigned int threshold;
     threshold = (30 - 5 * (motionOptions->motionSensitivity));
-    if (motionOptions->motionMode == MOTION_SEARCH) {
-        result = compareMotion( refMotionAvgValue, curMotionAvgValue, inputMotionMask, threshold);
-        motionMinBlocks = motionOptions->minBlocks;
-    }
-    else {
-        result = compareMotion(curMotionAvgValue, refMotionAvgValue, inputMotionMask, threshold);
-        motionMinBlocks = motionOptions->minBlocks;
-        if (motionMinBlocks == 0) {
-            motionMinBlocks = maskedBlockCount;
-        }
-    }
+    
+    result = compareMotion(refMotionAvgValue, curMotionAvgValue, inputMotionMask, threshold);
+    motionMinBlocks = motionOptions->minBlocks;
+    
 
     if (result >= motionMinBlocks) {
-        /**
-         * calculate connected component.
-         */
-        if (motionOptions->motionMode == MOTION_SEARCH) {
-            result = checkConnectedComponent(refMotionAvgValue, motionOptions->minBlocks);
-        }
-        else { //museum search.
-            // museum search doesn't check connected component.
-            result = 1;
-        }
-
+        result = checkConnectedComponent(refMotionAvgValue, motionOptions->minBlocks);
         if (result) {
             /**
              * motion detected. fill motionData using play(MCP_PLAY*) and.
@@ -526,39 +503,33 @@ void MotionSearch::doMotionSearch(
             lastDetectedFrameTime = frameTime;
 
             //motionData->segmentId   = play->segmentId;
-            motionData->time        = frameTime;
+            results->time        = frameTime;
             //motionData->tick        = play->tick;
             *detected = 1;
 
+            dumpMotionMap(refMotionAvgValue, "detected");
+
+#if 0
             MotionZone<MOTION_SEARCH_ROW_COUNT,MOTION_SEARCH_COLUMN_COUNT> zone;
             MotionBlockObject *mbo;
-            if (motionOptions->motionMode == MOTION_SEARCH) {
-                mbo = refMotionAvgValue;
-            }
-            else {
-                mbo = curMotionAvgValue;
-            }
+            
+            mbo = refMotionAvgValue;
 
             for (int32_t row = 0; row < motionZoneRowCount; row++) {
                 for (int32_t col = 0; col < motionZoneColCount; col++) {
                     uint32_t blkPos = row * motionZoneColCount + col;
-                    zone.setZone(row, col, mbo[blkPos].pixelData[0] ? true : false);
+                    zone.setZone(row, col, mbo[blkPos].pixelData ? true : false);
                 }
             }
             memcpy(motionData->motionMask, zone.zone(), (motionZoneRowCount * motionZoneColCount) >> 3);
+#endif
+
         }
     }
 
 save_ref:
-    /**
-     * write current motion data to reference in motion mode. in museum.
-     * search, reference will be preserved.
-     */
-
-    if (motionOptions->motionMode == MOTION_SEARCH) {
-        ::memcpy(refMotionAvgValue, curMotionAvgValue, sizeof(refMotionAvgValue));
-    }
-
+     // write current motion data to ref data
+    ::memcpy(refMotionAvgValue, curMotionAvgValue, sizeof(refMotionAvgValue));
     return;
 }
 

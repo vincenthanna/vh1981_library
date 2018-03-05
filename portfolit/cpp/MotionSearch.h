@@ -19,11 +19,15 @@ namespace VideoAnalytics {
     #define MOTION_SEARCH_ROW_COUNT 24
     #define MOTION_SEARCH_COLUMN_COUNT 32    
 
-    enum { MBO_DETAIL_LEVEL = 4 };
-    enum { MBO_PIXEL_COUNT = (MBO_DETAIL_LEVEL * MBO_DETAIL_LEVEL) };
+    //enum { MBO_DETAIL_LEVEL = 4 };
+    //enum { MBO_PIXEL_COUNT = (MBO_DETAIL_LEVEL * MBO_DETAIL_LEVEL) };
 
     struct MotionBlockObject {
-        uint8_t pixelData[MBO_PIXEL_COUNT];
+        uint8_t pixelData;
+    };
+
+    struct MotionResult {
+        uint32_t time;
     };
 
     /**
@@ -74,8 +78,7 @@ namespace VideoAnalytics {
                 MotionBlockObject *motionAvgData,
                 unsigned int width,
                 unsigned int height,
-                unsigned int stride,
-                unsigned char *motionMask) = 0;
+                unsigned int stride) = 0;
     //@}
     };
 
@@ -138,8 +141,8 @@ namespace VideoAnalytics {
             MCP_MOTION_OPTIONS* motionOptions,  // it has motionMode, motionSensitivity, minBlocks, motionMask.
             bool motionNew,                     // motion search start or ongoing
             uint32_t frameTime,
-            uint32_t *detected,             // if detected, set to 1 inside.
-            MCP_MOTION *motionData);            // if detected, it's used by caller.
+            uint32_t *detected);             // if detected, set to 1 inside.
+            MotionResult *result);            // if detected, it's used by caller.
     };
 
 }   // end of VideoAnalytics
