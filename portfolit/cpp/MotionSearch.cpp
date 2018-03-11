@@ -32,6 +32,8 @@ inline unsigned char getFlag(unsigned char* array, unsigned int index) {
         case 2:return (4 & array[i]) >> 2;
         case 1:return (2 & array[i]) >> 1;
         case 0:return (1 & array[i]);
+        default:
+            return array[i];
     }
 }
 
@@ -88,9 +90,8 @@ MotionSearch::MotionSearch() : _delegate(nullptr)
  * @param calculatedMotionValue         motion map/mask array.
  * @param title                         this string shows up before motion map/mask be printed.
  *
- * @return                              void.
  */
-void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, char* title)
+void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, const char* title)
 {
     int32_t i, j;
 
