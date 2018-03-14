@@ -27,6 +27,7 @@ namespace VideoAnalytics {
     };
 
     struct MotionResult {
+        bool detected;
         uint32_t time;
     };
 
@@ -141,7 +142,7 @@ namespace VideoAnalytics {
             MCP_MOTION_OPTIONS* motionOptions,  // it has motionMode, motionSensitivity, minBlocks, motionMask.
             bool motionNew,                     // motion search start or ongoing
             uint32_t frameTime,
-            uint32_t *detected,             // if detected, set to 1 inside.
+            //uint32_t *detected,             // if detected, set to 1 inside.
             MotionResult *result);            // if detected, it's used by caller.
     };
 

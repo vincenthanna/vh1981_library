@@ -3,7 +3,7 @@ CXXFLAGS = -g
 TARGET = a.out
 CXX = g++
 
-OBJS = Player.o
+OBJS = Player.o MotionSearch.o
 #LIBS = -lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale -lavfilter -lswresample -lavdevice -lrt -lpthread -ldl # linux
 LIBS = -lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale -lavfilter -lswresample -lavdevice -lpthread -ldl # OSX
 

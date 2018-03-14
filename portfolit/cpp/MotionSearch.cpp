@@ -6,7 +6,6 @@
 
 #include <iostream> 
 
-//#include <Step/MotionZone.h>
 #include "MotionSearch.h"
 #include "MotionZone.h"
 
@@ -94,11 +93,12 @@ MotionSearch::MotionSearch() : _delegate(nullptr)
 void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, const char* title)
 {
     int32_t i, j;
+    printf("start\n");
 
-    char linebuf[8192];
+    char linebuf[8192 * 2];
     ::memset(linebuf, 0x0, sizeof(linebuf));
 
-    char buffer[512];
+    char buffer[1024];
     memset(buffer,0x0,sizeof(buffer));
     sprintf(buffer, "[%s]\n", title);
     strcat(linebuf, buffer);
@@ -140,6 +140,8 @@ void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, const
     strcat(linebuf, buffer);
 
     fprintf(stderr, "%s", linebuf);
+    printf("linebuf len=%d\n", strlen(linebuf));
+    printf("end\n");
 }
 
 
@@ -180,7 +182,8 @@ int MotionSearch::compareMotion(
     for (i=0;i<MOTION_SEARCH_ROW_COUNT;i++) {
         for (j=0;j<MOTION_SEARCH_COLUMN_COUNT;j++) {
             pos = i * MOTION_SEARCH_COLUMN_COUNT + j;
-            if (motionMask[pos]) {
+            //if (motionMask[pos]) {
+            if (true) {
                 
                 // just save differences to motionData1.
                 if (motionData1[pos].pixelData > motionData2[pos].pixelData) {
@@ -387,18 +390,22 @@ void MotionSearch::doMotionSearch(
         MCP_MOTION_OPTIONS* motionOptions, // it has motionMode, motionSensitivity, minBlocks, motionMask.
         bool motionNew,                    // motion search start or ongoing.
         uint32_t frameTime,                    // segmentId, time, tick needed when motion detected.
-        unsigned int *detected,            // if detected, set to 1 inside.
+        //unsigned int *detected,            // if detected, set to 1 inside.
         MotionResult *results             // if detected, it's used by caller.
     )
 {
-    bool resolutionChanged = false;
+
+	printf("[%s]%d\n", __FUNCTION__, __LINE__);
+
+	bool resolutionChanged = false;
     int result;
     unsigned int motionMinBlocks=0;
+    unsigned int threshold = (30 - 5 * (motionOptions->motionSensitivity));
 
     assert(_delegate != NULL);
 
     // init as not detected.
-    *detected = 0;
+    //*detected = 0;
 
     if (_width != width || _height != height) {
         resolutionChanged = true;
@@ -410,56 +417,6 @@ void MotionSearch::doMotionSearch(
 
     // save motion mask & first frame if motionNew not zero.
     if (motionNew || resolutionChanged) {
-        int32_t i, j;
-
-        // start from nothing.
-        lastDetectedFrameTime = 0;
-
-        // init motionMask.
-        //::memset(inputMotionMask, 0x0, sizeof(inputMotionMask));
-
-        // init masked block count.
-        //maskedBlockCount = 0;
-
-        // convert motionMask(bit array) into byte array.
-        // for (i=0 ; i < MOTION_SEARCH_ROW_COUNT ; i++) {
-        //     for (j=0; j < MOTION_SEARCH_COLUMN_COUNT; j++) {
-        //         inputMotionMask[i * MOTION_SEARCH_COLUMN_COUNT + (MOTION_SEARCH_COLUMN_COUNT-1)-j] = \
-        //             getFlag((unsigned char*)(motionOptions->motionMask), i * MOTION_SEARCH_COLUMN_COUNT + j);
-
-        //         // for museum search. museum search set motionMinBlocks to.
-        //         // 80% of masked block count.
-        //         if (inputMotionMask[i * MOTION_SEARCH_COLUMN_COUNT + (MOTION_SEARCH_COLUMN_COUNT-1)-j]) {
-        //             maskedBlockCount++;
-        //         }
-        //     }
-        // }
-
-#if 0
-        {
-            char buffer[512];
-            char linebuf[8192];
-            memset(linebuf,0x0,sizeof(linebuf));
-
-            memset(buffer,0x0,sizeof(buffer));
-            sprintf(buffer, "inputMotionMask-------------------------------------------------------------------------\n");strcat(linebuf, buffer);
-            for (i=0 ; i < MOTION_SEARCH_ROW_COUNT ; i++) {
-
-                memset(buffer,0x0,sizeof(buffer));
-                sprintf(buffer, "%2d|", i);strcat(linebuf, buffer);
-                for (j=0; j < MOTION_SEARCH_COLUMN_COUNT; j++) {
-                    memset(buffer,0x0,sizeof(buffer));
-                    sprintf(buffer, "%2x ", inputMotionMask[ i*MOTION_SEARCH_COLUMN_COUNT + j ]);strcat(linebuf, buffer);
-                }
-                memset(buffer,0x0,sizeof(buffer));
-                sprintf(buffer, "\n");strcat(linebuf, buffer);
-            }
-            memset(buffer,0x0,sizeof(buffer));
-            sprintf(buffer, "\n");strcat(linebuf, buffer);
-            fprintf(stderr, linebuf);
-        }
-#endif
-
         _delegate->getBlockAvg(vo_buffer, curMotionAvgValue, width, height, stride);
 
         // in museum search, refMotionAvgValue holds first frame data and  preserved during search.
@@ -468,13 +425,14 @@ void MotionSearch::doMotionSearch(
     }
     else if ( lastDetectedFrameTime == frameTime) {
         // 초 단위로 check하므로, 이미 움직임을 확인했으면 다음 초가 될 때까지 데이터 업데이트만 하고 넘긴다.
-
         _delegate->getBlockAvg(vo_buffer, refMotionAvgValue, width, height, stride);
-
         return;
     }
 
-    // get block Y value from current frame.
+    /**
+     * get block Y value from current frame.
+     * must be provided by _delegate(MotionBlockAvgDelegate)
+     */
     _delegate->getBlockAvg(vo_buffer, curMotionAvgValue, width, height, stride);
     //dumpMotionMap(curMotionAvgValue, "current");
 
@@ -483,14 +441,8 @@ void MotionSearch::doMotionSearch(
      * refMotionAvgValue is overwritten by differences. and be overwritten by curMotionAvgValue again.
      * in museum search, refMotionAvgValue is preserved and curMotionAvgValue is overwritten repeatedly.
      */
-
-    unsigned int threshold;
-    threshold = (30 - 5 * (motionOptions->motionSensitivity));
-    
     result = compareMotion(refMotionAvgValue, curMotionAvgValue, inputMotionMask, threshold);
     motionMinBlocks = motionOptions->minBlocks;
-    
-
     if (result >= motionMinBlocks) {
         result = checkConnectedComponent(refMotionAvgValue, motionOptions->minBlocks);
         if (result) {
@@ -502,14 +454,13 @@ void MotionSearch::doMotionSearch(
             //dumpMotionMap(refMotionAvgValue, "diff");
 
             lastDetectedFrameTime = frameTime;
-
-            //motionData->segmentId   = play->segmentId;
-            results->time        = frameTime;
-            //motionData->tick        = play->tick;
-            *detected = 1;
+            results->time = frameTime;
+            results->detected = true;
+            //*detected = 1;
 
             dumpMotionMap(refMotionAvgValue, "detected");
 
+            // 아래 코드는 필요 없음
 #if 0
             MotionZone<MOTION_SEARCH_ROW_COUNT,MOTION_SEARCH_COLUMN_COUNT> zone;
             MotionBlockObject *mbo;

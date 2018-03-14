@@ -24,6 +24,15 @@ extern "C"
 
 #include <stdio.h>
 
+#include <iostream>
+
+#include "MotionSearch.h"
+
+using namespace std;
+using namespace VideoAnalytics;
+
+MotionSearch motionSearch;
+
 AVFormatContext *fmt_ctx = NULL;
 int video_stream_idx = -1;
 int audio_stream_idx = -1;
@@ -38,8 +47,104 @@ int video_dst_bufsize;
 AVPacket pkt;
 AVFrame *frame;
 
+MCP_MOTION_OPTIONS motionOptions;
+bool motionNew = true;
+
 int video_frame_count = 0;
 int audio_frame_count = 0;
+
+class MotionBlockAvgImpl : public MotionBlockAvgDelegate
+{
+public:
+	MotionBlockAvgImpl();
+	virtual ~MotionBlockAvgImpl() {}
+public:
+	/**
+	 @name MotionSearch 인스턴스로 움직임 검색을 사용할 경우 아래 함수 구현을 제공해야 한다.
+		   사용되는 프레임의 이미지 포맷이 YCbCr 4:2:2인지, YCbCr 4:2:0인지, RGB인지에 따라
+		   픽셀을 뽑아내는 방법이 달라져야 함.
+
+	 @param image           프레임 이미지
+	 @param motionAvgData   averaged block value(Y).
+	 @param width           프레임 width
+	 @param height          프레임 height
+	 @param stride          number of bytes from one row of pixels.
+							in memory to the next row of pixels in memory.
+	 @param motionMask      marked area to be searched.
+
+	 @return void.
+	 */
+	//@{
+	virtual void getBlockAvg(
+			const unsigned char *image,
+			MotionBlockObject *motionAvgData,
+			unsigned int width,
+			unsigned int height,
+			unsigned int stride);
+	//@}
+};
+
+MotionBlockAvgImpl::MotionBlockAvgImpl() : MotionBlockAvgDelegate()
+{
+
+}
+
+void MotionBlockAvgImpl::getBlockAvg(const unsigned char *image,
+		MotionBlockObject *motionAvgData,
+		unsigned int width,
+		unsigned int height,
+		unsigned int stride)
+{
+	unsigned int blockWidth = (width) / (MOTION_SEARCH_COLUMN_COUNT);
+	unsigned int blockHeight =(height) / (MOTION_SEARCH_ROW_COUNT);
+
+	int blk_row,blk_col,blk_pos;
+
+	for (blk_row = 0; blk_row < MOTION_SEARCH_ROW_COUNT; blk_row++) {
+		for (blk_col = 0; blk_col < MOTION_SEARCH_COLUMN_COUNT; blk_col++) {
+
+			blk_pos = blk_row * MOTION_SEARCH_COLUMN_COUNT + blk_col;
+
+
+//			uint32 pixelpos[MBO_PIXEL_COUNT];
+//			uint32 pixelPosCount = 0;
+//			for (int sbr = 1; sbr < (MBO_DETAIL_LEVEL + 1); sbr++) {
+//				for (int sbc = 1; sbc < (MBO_DETAIL_LEVEL + 1); sbc++) {
+//					pixelpos[pixelPosCount] =
+//							stride * ((height * blk_row) / MOTION_SEARCH_ROW_COUNT) + // y축 끝.
+//							stride * ((blockHeight * sbr) / (MBO_DETAIL_LEVEL + 1)) + // y축 offset.
+//							(width * blk_col) / MOTION_SEARCH_COLUMN_COUNT +          // x축 끝.
+//							(blockWidth * sbc) / (MBO_DETAIL_LEVEL + 1);              // x축 offset.
+//
+//					pixelPosCount++;
+//				}
+//			}
+
+			unsigned int pixelpos = \
+                                        stride * ((height * blk_row) / MOTION_SEARCH_ROW_COUNT) + // y축 끝.
+										stride * (blockHeight / 2) + // y축 offset.
+										(width * blk_col) / MOTION_SEARCH_COLUMN_COUNT +          // x축 끝.
+										(blockWidth / 2);              // x축 offset.
+
+
+//			for (int32 i = 0; i < pixelPosCount; i++) {
+//				uint32 valueSum = 0;
+//				uint32 samplingCount = 3;
+//				for (uint32 off = 0; off < samplingCount; off++) {
+//					valueSum += (image[pixelpos[i] + off]);
+//					valueSum += (image[pixelpos[i] - off]);
+//				}
+//				motionAvgData[blk_pos].pixelData[i] = (unsigned char)(valueSum/(samplingCount*2));
+//			}
+			motionAvgData[blk_pos].pixelData = (unsigned char)image[pixelpos];
+
+		}
+	}
+	return;
+}
+
+MotionBlockAvgImpl motionBlockAvgImpl;
+
 
 #define INBUF_SIZE 4096
 static void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize,
@@ -65,11 +170,70 @@ int decode_packet(int *got_frame, int cached)
             fprintf(stderr, "Error decoding video frame\n");
             return ret;
         }
+        
         if (*got_frame) {
-            printf("video_frame%s n:%d coded_n:%d pts:%s\n",
+            printf("video_frame%s n:%d coded_n:%d pts:%s size:%d format:%d (%d X %d) \n",
                    cached ? "(cached)" : "",
                    video_frame_count++, frame->coded_picture_number,
-                   av_ts2timestr(frame->pts, &video_dec_ctx->time_base));
+                   av_ts2timestr(frame->pts, &video_dec_ctx->time_base),
+                   frame->pkt_size,
+                   frame->format,
+                   frame->width, frame->height);
+
+            string str = "linesize:";
+            for (int i = 0; i < 8; i++) {
+                char buf[100];
+                memset(buf, 0x0, sizeof(buf));
+                sprintf(buf, "%d ", frame->linesize[i]);
+                str.append(buf);
+            }
+
+            str = " buf : ";
+            for (int i = 0; i < AV_NUM_DATA_POINTERS; i++) {
+                char buf[100];
+                memset(buf, 0x0, sizeof(buf));
+                if (frame->data[i] != NULL) {
+                    sprintf(buf, "%p ", frame->data[i]);
+                }
+                str.append(buf);
+            }
+
+            str.append("\n");
+            printf("%s", str.c_str());
+
+            // format == 0 : YCbCr 4:2:0
+//            unsigned char *vo_buffer, // _video_out_buffer.
+//                    unsigned int width,
+//                    unsigned int height,
+//                    unsigned int stride,
+//                    unsigned int motionZoneRowCount,
+//                    unsigned int motionZoneColCount,
+//                    MCP_MOTION_OPTIONS* motionOptions, // it has motionMode, motionSensitivity, minBlocks, motionMask.
+//                    bool motionNew,                    // motion search start or ongoing.
+//                    uint32_t frameTime,                    // segmentId, time, tick needed when motion detected.
+//                    unsigned int *detected,            // if detected, set to 1 inside.
+//                    MotionResult *results
+
+
+#if 1
+            	MotionResult result;
+			motionSearch.doMotionSearch(frame->data[0],
+					frame->width,
+            			frame->height,
+						frame->linesize[0],
+						MOTION_SEARCH_ROW_COUNT,
+						MOTION_SEARCH_COLUMN_COUNT,
+						&motionOptions,
+						motionNew,
+						frame->pts,
+						&result);
+#endif
+
+
+			if (motionNew) {
+				motionNew = false;
+			}
+
             /* copy decoded frame to destination buffer:
              * this is required since rawvideo expects non aligned data */
             av_image_copy(video_dst_data, video_dst_linesize,
@@ -169,9 +333,6 @@ static int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AV
     return 0;
 }
 
-
-
-
 int main(int argc, char** argv)
 {   
     char *filename, *outfilename;
@@ -183,7 +344,6 @@ int main(int argc, char** argv)
     uint8_t *data;
     size_t   data_size;
     int ret;
-
     int got_frame;
     
     if (argc <= 2) {
@@ -193,7 +353,14 @@ int main(int argc, char** argv)
     
     filename    = argv[1];
     outfilename = argv[2];
+
+    // init motionOptions:
+    motionOptions.minBlocks = 10;
+    motionOptions.motionMode = 0; // not used
+    motionOptions.motionSensitivity = 2;
     
+    motionSearch.setDelegate(&motionBlockAvgImpl);
+
     video_dst_filename = outfilename;
     
     if (avformat_open_input(&fmt_ctx, filename, NULL, NULL) < 0) {
@@ -272,82 +439,5 @@ int main(int argc, char** argv)
     }
 
 end:
-
-    
     return 0;
-    
-
-    
-//    pkt = av_packet_alloc();
-//    if (!pkt) {
-//        exit(1);
-//    }
-//
-//    /* set end of buffer to 0 (this ensures that no overreading happens for damaged MPEG streams) */
-//    memset(inbuf + INBUF_SIZE, 0, AV_INPUT_BUFFER_PADDING_SIZE);
-//    /* find the MPEG-1 video decoder */
-//    codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-//    if (!codec) {
-//        fprintf(stderr, "Codec not found\n");
-//        exit(1);
-//    }
-//    parser = av_parser_init(codec->id);
-//    if (!parser) {
-//        fprintf(stderr, "parser not found\n");
-//        exit(1);
-//    }
-//    c = avcodec_alloc_context3(codec);
-//    if (!c) {
-//        fprintf(stderr, "Could not allocate video codec context\n");
-//        exit(1);
-//    }
-//    /* For some codecs, such as msmpeg4 and mpeg4, width and height
-//     MUST be initialized there because this information is not
-//     available in the bitstream. */
-//    /* open it */
-//    if (avcodec_open2(c, codec, NULL) < 0) {
-//        fprintf(stderr, "Could not open codec\n");
-//        exit(1);
-//    }
-//    f = fopen(filename, "rb");
-//    if (!f) {
-//        fprintf(stderr, "Could not open %s\n", filename);
-//        exit(1);
-//    }
-//    frame = av_frame_alloc();
-//    if (!frame) {
-//        fprintf(stderr, "Could not allocate video frame\n");
-//        exit(1);
-//    }
-//    while (!feof(f)) {
-//        /* read raw data from the input file */
-//        data_size = fread(inbuf, 1, INBUF_SIZE, f);
-//        if (!data_size)
-//            break;
-//        /* use the parser to split the data into frames */
-//        data = inbuf;
-//        while (data_size > 0) {
-//            ret = av_parser_parse2(parser, c, &pkt->data, &pkt->size,
-//                                   data, data_size, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
-//            if (ret < 0) {
-//                fprintf(stderr, "Error while parsing\n");
-//                exit(1);
-//            }
-//            data      += ret;
-//            data_size -= ret;
-//            if (pkt->size) {
-//                decode(c, frame, pkt, outfilename);
-//            }
-//        }
-//    }
-//    /* flush the decoder */
-//    decode(c, frame, NULL, outfilename);
-//    fclose(f);
-//    av_parser_close(parser);
-//    avcodec_free_context(&c);
-//    av_frame_free(&frame);
-//    av_packet_free(&pkt);
-//    return 0;
-    
-
 }
