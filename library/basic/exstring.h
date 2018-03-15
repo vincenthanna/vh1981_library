@@ -36,14 +36,17 @@ namespace vh1981lib {
 
             exstring& operator=(const exstring& s) { _string.assign(s._string); return *this; }
             exstring& operator+=(const exstring& s) { _string.append(s._string); return *this; }
+            exstring& operator=(const char* s) {
+                printf("s = %s\n", s);
+                _string = s; return *this;
+            }
             void swap(exstring& s) { _string.swap(s._string); }
 
         // format:
         public:
             void format(const exstring& format, ...);
-            void vformat(const exstring& format, va_list args);
             void appendf(const exstring& format, ...);
-            void appendvf(const exstring& format, va_list args);
+            void appendf(const char* format, ...);
 
         // indexing:
         public:
