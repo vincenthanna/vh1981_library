@@ -3,7 +3,9 @@ CXXFLAGS = -g -std=c++11
 TARGET = a.out
 CXX = g++
 
-OBJS = exstring.o main.o
+OBJS = exstring.o exstring_test.o
+
+LIBS = -lgtest -lpthread
 
 $(TARGET): $(OBJS)
 	$(CXX) $(TRACE_FLAGS) $(CXXFLAGS) -o $@ $(OBJS) $(LIBS) -I /usr/local/include

@@ -1,12 +1,6 @@
 #include <string>
-#include <algorithm>
-#include <locale>
-#include <vector>
-#include <stdexcept>    // runtime_error
-#include <iostream>     // wcerr
 #include <cstring>
 #include <stdarg.h>
-
 #include <stdio.h>
 
 #include "exstring.h"
@@ -14,6 +8,11 @@
 using namespace std;
 
 namespace vh1981lib {
+    /**
+     서식 처리 함수
+     @param fmt 서식 문자열
+     @param args 서식 가변 인자
+     */
     std::string format_arg_list(const char *fmt, va_list args)
     {
         if (!fmt) {
@@ -47,13 +46,21 @@ void exstring::format(const exstring &format, ...)
     va_end(args);
 }
 
-void exstring::appendf(const exstring &format, ...)
+void exstring::format(const char* format, ...)
 {
     va_list args;
     va_start(args, format);
+    _string = format_arg_list(format, args);
+    va_end(args);
+}
+
+void exstring::appendf(const exstring &format, ...)
+{
+    va_list args;
+    va_start(args, reinterpret_cast<const exstring*>(&format));
     string s;
     const char* fmt = format.to_string().c_str();
-    s = format_arg_list(fmt, args); // _g2_wstring_vformat(&ws, format, args);
+    s = format_arg_list(fmt, args);
     va_end(args);
 
     _string += s;
@@ -63,34 +70,20 @@ void exstring::appendf(const char* format, ...)
 {
     va_list args;
     va_start(args, format);
-    string s = format_arg_list(format, args); // _g2_wstring_vformat(&ws, format, args);
+    string s = format_arg_list(format, args);
     va_end(args);
 
     _string += s;
 }
 
-void exstring::reserve(uint32_t capacity) { 
-
+void exstring::reserve(uint32_t capacity) {
+    _string.reserve(capacity);
 }
 
-exstring::exstring(const wchar_t *wcs) { 
-
+exstring::exstring(const std::string &s) {
+    _string = s;
 }
 
-exstring::exstring(const wchar_t *wcs, size_t len) { 
-
-}
-
-exstring::exstring(const std::string &cs) { 
-
-}
-
-exstring::exstring(const char *cs) { 
+exstring::exstring(const char *cs) {
     _string = string(cs);
-}
-
-exstring::exstring(const char *cs, size_t len) { 
-
-
-
 }
