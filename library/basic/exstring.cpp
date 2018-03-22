@@ -2,6 +2,7 @@
 #include <cstring>
 #include <stdarg.h>
 #include <stdio.h>
+#include <iostream>
 
 #include "exstring.h"
 
@@ -31,6 +32,12 @@ namespace vh1981lib {
         std::string s(buffer);
         delete [] buffer;
         return s;
+    }
+
+    std::ostream& operator<<(std::ostream& os, const exstring& str)
+    {
+        os << str._string;
+        return os;
     }
 
 } //end of vh1981lib

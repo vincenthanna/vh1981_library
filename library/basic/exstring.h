@@ -1,5 +1,9 @@
+#ifndef _VH1981_EXSTRING_
+#define _VH1981_EXSTRING_
+
 #include <string>
 #include <cstdarg>
+#include <functional>
 
 namespace vh1981lib {
 
@@ -73,7 +77,7 @@ namespace vh1981lib {
     //@}
 
     /**
-     @name compare methods
+     @name compare operator overloading
      */
     //@{
     public:
@@ -91,9 +95,36 @@ namespace vh1981lib {
         bool operator> (const char* str) const { return _string >  str; }
     //@}
 
+    /**
+     @name stream operator overloading
+
+     @brief ostream를 상속받은 cout등의 객체에도 shift 연산에 대한 오버로딩이 없으므로
+     단순한 멤버 함수 오버로딩으론 안되고 전역함수 오버로딩으로 처리해야 함.
+
+
+     */
+    //@{
+    public:
+        friend std::ostream& operator<<(std::ostream& os, const exstring& str);
+    //@}
+
     public:
         const std::string& to_string() const { return _string; }
         void from_string(const std::string& s) { _string = s; }
+
+    public:
+        virtual size_t hash() const { return std::hash<std::string>()(_string); }
     };
 
 } // namespace vh1981lib
+
+namespace std
+{
+    template <>
+    struct hash<vh1981lib::exstring> {
+        size_t operator()(const vh1981lib::exstring& s) const { return s.hash(); }
+    };
+
+}   // namespace std
+
+#endif

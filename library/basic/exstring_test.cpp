@@ -1,6 +1,12 @@
+#ifndef EXLOG_NAME
+    #undef EXLOG_NAME
+    #define EXLOG_NAME "exstring_test"
+#endif
+
 #include <gtest/gtest.h>
 
 #include "exstring.h"
+#include "extrace.h"
 
 using namespace std;
 using namespace vh1981lib;
@@ -41,6 +47,8 @@ TEST(exstring_test, manipulation)
         exstring str2(t1);
         str2.appendf("%s", t2);
         EXPECT_TRUE(str2 == exstring("HelloWorld"));
+
+        EXCLOG(LOG_WARN, exstring("Hello World"));
     }
 }
 
