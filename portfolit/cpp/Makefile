@@ -1,11 +1,13 @@
-CXXFLAGS = -g
+CXXFLAGS = -g -std=c++11
 #TRACE_FLAGS =  -Wl,-v
 TARGET = a.out
 CXX = g++
 
+CXXFLAGS += -D__STDC_CONSTANT_MACROS
+
 OBJS = Player.o MotionSearch.o
-#LIBS = -lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale -lavfilter -lswresample -lavdevice -lrt -lpthread -ldl # linux
-LIBS = -lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale -lavfilter -lswresample -lavdevice -lpthread -ldl # OSX
+LIBS = -lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale -lavfilter -lswresample -lavdevice -lrt -lpthread -ldl # linux
+#LIBS = -lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale -lavfilter -lswresample -lavdevice -lpthread -ldl # OSX
 
 #-lavformat -lavcodec -lswscale -lavutil -lavfilter -lswresample -lavdevice -lpostproc -lao -lz -lx264 -llzma -lbz2 -lva -lrt
 

@@ -105,37 +105,12 @@ void MotionBlockAvgImpl::getBlockAvg(const unsigned char *image,
 
 			blk_pos = blk_row * MOTION_SEARCH_COLUMN_COUNT + blk_col;
 
-
-//			uint32 pixelpos[MBO_PIXEL_COUNT];
-//			uint32 pixelPosCount = 0;
-//			for (int sbr = 1; sbr < (MBO_DETAIL_LEVEL + 1); sbr++) {
-//				for (int sbc = 1; sbc < (MBO_DETAIL_LEVEL + 1); sbc++) {
-//					pixelpos[pixelPosCount] =
-//							stride * ((height * blk_row) / MOTION_SEARCH_ROW_COUNT) + // y축 끝.
-//							stride * ((blockHeight * sbr) / (MBO_DETAIL_LEVEL + 1)) + // y축 offset.
-//							(width * blk_col) / MOTION_SEARCH_COLUMN_COUNT +          // x축 끝.
-//							(blockWidth * sbc) / (MBO_DETAIL_LEVEL + 1);              // x축 offset.
-//
-//					pixelPosCount++;
-//				}
-//			}
-
 			unsigned int pixelpos = \
                                         stride * ((height * blk_row) / MOTION_SEARCH_ROW_COUNT) + // y축 끝.
 										stride * (blockHeight / 2) + // y축 offset.
 										(width * blk_col) / MOTION_SEARCH_COLUMN_COUNT +          // x축 끝.
 										(blockWidth / 2);              // x축 offset.
 
-
-//			for (int32 i = 0; i < pixelPosCount; i++) {
-//				uint32 valueSum = 0;
-//				uint32 samplingCount = 3;
-//				for (uint32 off = 0; off < samplingCount; off++) {
-//					valueSum += (image[pixelpos[i] + off]);
-//					valueSum += (image[pixelpos[i] - off]);
-//				}
-//				motionAvgData[blk_pos].pixelData[i] = (unsigned char)(valueSum/(samplingCount*2));
-//			}
 			motionAvgData[blk_pos].pixelData = (unsigned char)image[pixelpos];
 
 		}
@@ -172,10 +147,9 @@ int decode_packet(int *got_frame, int cached)
         }
         
         if (*got_frame) {
-            printf("video_frame%s n:%d coded_n:%d pts:%s size:%d format:%d (%d X %d) \n",
+            printf("video_frame%s n:%d coded_n:%d size:%d format:%d (%d X %d) \n",
                    cached ? "(cached)" : "",
                    video_frame_count++, frame->coded_picture_number,
-                   av_ts2timestr(frame->pts, &video_dec_ctx->time_base),
                    frame->pkt_size,
                    frame->format,
                    frame->width, frame->height);
@@ -200,20 +174,6 @@ int decode_packet(int *got_frame, int cached)
 
             str.append("\n");
             printf("%s", str.c_str());
-
-            // format == 0 : YCbCr 4:2:0
-//            unsigned char *vo_buffer, // _video_out_buffer.
-//                    unsigned int width,
-//                    unsigned int height,
-//                    unsigned int stride,
-//                    unsigned int motionZoneRowCount,
-//                    unsigned int motionZoneColCount,
-//                    MCP_MOTION_OPTIONS* motionOptions, // it has motionMode, motionSensitivity, minBlocks, motionMask.
-//                    bool motionNew,                    // motion search start or ongoing.
-//                    uint32_t frameTime,                    // segmentId, time, tick needed when motion detected.
-//                    unsigned int *detected,            // if detected, set to 1 inside.
-//                    MotionResult *results
-
 
 #if 1
             	MotionResult result;
@@ -257,10 +217,10 @@ int decode_packet(int *got_frame, int cached)
         if (*got_frame) {
             AVSampleFormat fmt = (AVSampleFormat)frame->format;
             size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(fmt);
-            printf("audio_frame%s n:%d nb_samples:%d pts:%s\n",
+            printf("audio_frame%s n:%d nb_samples:%d\n",
                    cached ? "(cached)" : "",
-                   audio_frame_count++, frame->nb_samples,
-                   av_ts2timestr(frame->pts, &audio_dec_ctx->time_base));
+                   audio_frame_count++, frame->nb_samples);
+
             /* Write the raw audio data samples of the first plane. This works
              * fine for packed formats (e.g. AV_SAMPLE_FMT_S16). However,
              * most audio decoders output planar audio, which uses a separate

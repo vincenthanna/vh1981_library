@@ -1,5 +1,5 @@
 #include <iostream>
-#include "extrace.h"
+#include "exlog.h"
 
 #include <stdio.h>
 
@@ -12,9 +12,6 @@ namespace vh1981lib {
     void exvlog(const exlogops& ops, const exstring& format, va_list args)
     {
         string s = format_arg_list(format.to_string().c_str(), args);
-
-        printf("[%s]%d\n", __FUNCTION__,__LINE__);
-
         cout.imbue(std::locale(""));
 
         bool clearStyle = (exlogops::ansi_default != ops.color());

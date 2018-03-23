@@ -100,8 +100,6 @@ namespace vh1981lib {
 
      @brief ostream를 상속받은 cout등의 객체에도 shift 연산에 대한 오버로딩이 없으므로
      단순한 멤버 함수 오버로딩으론 안되고 전역함수 오버로딩으로 처리해야 함.
-
-
      */
     //@{
     public:

@@ -31,7 +31,7 @@ namespace vh1981lib {
             _line = line;
             _color = color;
         }
-        
+
     protected:
         exstring _name;
         exstring _funcName;
@@ -72,7 +72,6 @@ namespace vh1981lib {
 
         void exlog(const exstring& name, const exstring* format, ...)
         {
-            printf("[%s]%d\n", __FUNCTION__,__LINE__);
             if (!name.empty() && s_lognames.contains(name)) {
                 va_list args;
                 va_start(args, format);
@@ -83,9 +82,7 @@ namespace vh1981lib {
 
         void exlog(const exlogops& option, const exstring* format, ...)
         {
-            printf("[%s]%d\n", __FUNCTION__,__LINE__);
             if (!option.name().empty() && s_lognames.contains(option.name())) {
-                printf("[%s]%d\n", __FUNCTION__,__LINE__);
                 va_list args;
                 va_start(args, format);
                 exvlog(option, *format, args);
@@ -97,15 +94,14 @@ namespace vh1981lib {
         #define EXLOG_NAME ""
         #endif
 
-        #define __TRACE_RT_PARMS   EXLOG_NAME,exstring(__FUNCTION__),__LINE__
-        #define LOG_DEBUG exlogops(__TRACE_RT_PARMS, exlogops::ansi_default)
-        #define LOG_INFO exlogops(__TRACE_RT_PARMS, exlogops::red_black)
-        #define LOG_WARN exlogops(__TRACE_RT_PARMS, exlogops::grey_black)
-        #define LOG_ERROR exlogops(__TRACE_RT_PARMS, exlogops::green_yellow)
-        #define LOG_FATAL exlogops(__TRACE_RT_PARMS, exlogops::purple_green)
+        #define _PARMS_   EXLOG_NAME,exstring(__FUNCTION__),__LINE__
+        #define LOG_DEBUG exlogops(_PARMS_, exlogops::ansi_default)
+        #define LOG_INFO exlogops(_PARMS_, exlogops::red_black)
+        #define LOG_WARN exlogops(_PARMS_, exlogops::grey_black)
+        #define LOG_ERROR exlogops(_PARMS_, exlogops::green_yellow)
+        #define LOG_FATAL exlogops(_PARMS_, exlogops::purple_green)
 
         #define EXCLOG(option, format, ...)\
-            printf("[%s]%d %c\n", __FUNCTION__,__LINE__, EXLOG_NAME[0]);\
             do { \
                 if (EXLOG_NAME[0] != L'\0') { \
                     exstring fmt(format); \
