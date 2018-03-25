@@ -1,23 +1,19 @@
-#ifndef EXLOG_NAME
-    #undef EXLOG_NAME
-    #define EXLOG_NAME "Player"
-#endif
-
 extern "C"
 {
-    #include <libavformat/avformat.h> 
-    #include <libavcodec/avcodec.h>
-    #include <libswresample/swresample.h>
-    #include <libswscale/swscale.h>
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libswresample/swresample.h>
+#include <libswscale/swscale.h>
 
-    #include <libavformat/avformat.h>
-    #include <libavformat/avio.h>
-    #include <libavutil/opt.h>
-    #include <libavutil/file.h>
-    #include <libavutil/timestamp.h>
-    
-    #include <libavutil/imgutils.h>
-    #include <libavutil/samplefmt.h>
+#include <libavformat/avformat.h>
+#include <libavformat/avio.h>
+#include <libavutil/opt.h>
+#include <libavutil/file.h>
+#include <libavutil/timestamp.h>
+
+#include <libavutil/imgutils.h>
+#include <libavutil/samplefmt.h>
+
 };
 
 #pragma comment(lib,"avformat.lib")
@@ -30,64 +26,76 @@ extern "C"
 
 #include <iostream>
 
-#include "Player.h"
-
-#include "library/basic/extools.h"
-#include "library/basic/exlog.h"
-
 #include "MotionSearch.h"
 
 using namespace std;
 using namespace VideoAnalytics;
-using namespace vh1981lib;
 
-/*
- MotionSearch motionSearch;
 
- AVFormatContext *fmt_ctx;
- int video_stream_idx;
- int audio_stream_idx;
- static AVCodecContext *video_dec_ctx, *audio_dec_ctx;
- static AVStream *video_stream, *audio_stream;
- char* video_dst_filename;
- FILE *video_dst_file;
- FILE *audio_dst_file;
- uint8_t *video_dst_data[4] = {NULL};
- int      video_dst_linesize[4];
- int video_dst_bufsize;
- AVPacket pkt;
- AVFrame *frame;
 
- MCP_MOTION_OPTIONS motionOptions;
- bool motionNew;
 
- int video_frame_count;
- int audio_frame_count;
- */
+MotionSearch motionSearch;
 
-Player::Player() : motionSearch(),
-    fmt_ctx(nullptr),
-    video_stream_idx(-1), audio_stream_idx(-1),
-    video_dec_ctx(nullptr), audio_dec_ctx(nullptr),
-    video_stream(nullptr), audio_stream(nullptr),
-    //video_dst_filename(nullptr),
-    //video_dst_file(nullptr), audio_dst_file(nullptr),
-    //video_dst_bufsize(0),
-    frame(nullptr),
-    motionOptions(),
-    motionNew(true),
-    video_frame_count(0), audio_frame_count(0)
+AVFormatContext *fmt_ctx = NULL;
+int video_stream_idx = -1;
+int audio_stream_idx = -1;
+static AVCodecContext *video_dec_ctx = NULL, *audio_dec_ctx;
+static AVStream *video_stream = NULL, *audio_stream = NULL;
+char* video_dst_filename = NULL;
+FILE *video_dst_file = NULL;
+FILE *audio_dst_file = NULL;
+uint8_t *video_dst_data[4] = {NULL};
+int      video_dst_linesize[4];
+int video_dst_bufsize;
+AVPacket pkt;
+AVFrame *frame;
+
+MCP_MOTION_OPTIONS motionOptions;
+bool motionNew = true;
+
+int video_frame_count = 0;
+int audio_frame_count = 0;
+
+class MotionBlockAvgImpl : public MotionBlockAvgDelegate
 {
-    array_access(video_dst_data, i) {
-        video_dst_data[i] = nullptr;
-    }
+public:
+    MotionBlockAvgImpl();
+    virtual ~MotionBlockAvgImpl() {}
+public:
+    /**
+     @name MotionSearch 인스턴스로 움직임 검색을 사용할 경우 아래 함수 구현을 제공해야 한다.
+     사용되는 프레임의 이미지 포맷이 YCbCr 4:2:2인지, YCbCr 4:2:0인지, RGB인지에 따라
+     픽셀을 뽑아내는 방법이 달라져야 함.
 
-    array_access(video_dst_linesize, i) {
-        video_dst_linesize[i] = 0;
-    }
+     @param image           프레임 이미지
+     @param motionAvgData   averaged block value(Y).
+     @param width           프레임 width
+     @param height          프레임 height
+     @param stride          number of bytes from one row of pixels.
+     in memory to the next row of pixels in memory.
+     @param motionMask      marked area to be searched.
+
+     @return void.
+     */
+    //@{
+    virtual void getBlockAvg(
+                             const unsigned char *image,
+                             MotionBlockObject *motionAvgData,
+                             unsigned int width,
+                             unsigned int height,
+                             unsigned int stride);
+    //@}
+};
+
+MotionBlockAvgImpl::MotionBlockAvgImpl() : MotionBlockAvgDelegate()
+{
+
 }
 
-void Player::getBlockAvg(const unsigned char *image,
+/**
+ YCbCr 4:2:0 포맷에서 Y값만 추출해서 row/column 배열로 추출하는 delegate 함수
+ */
+void MotionBlockAvgImpl::getBlockAvg(const unsigned char *image,
                                      MotionBlockObject *motionAvgData,
                                      unsigned int width,
                                      unsigned int height,
@@ -104,18 +112,23 @@ void Player::getBlockAvg(const unsigned char *image,
             blk_pos = blk_row * MOTION_SEARCH_COLUMN_COUNT + blk_col;
 
             unsigned int pixelpos = \
-            stride * ((height * blk_row) / MOTION_SEARCH_ROW_COUNT) +   // y축 끝.
-            stride * (blockHeight / 2) +                                // y축 offset.
-            (width * blk_col) / MOTION_SEARCH_COLUMN_COUNT +            // x축 끝.
-            (blockWidth / 2);                                           // x축 offset.
+            stride * ((height * blk_row) / MOTION_SEARCH_ROW_COUNT) + // y축 끝.
+            stride * (blockHeight / 2) + // y축 offset.
+            (width * blk_col) / MOTION_SEARCH_COLUMN_COUNT +          // x축 끝.
+            (blockWidth / 2);              // x축 offset.
 
             motionAvgData[blk_pos].pixelData = (unsigned char)image[pixelpos];
+
         }
     }
     return;
 }
 
-void Player::pgm_save(unsigned char *buf, int wrap, int xsize, int ysize,
+MotionBlockAvgImpl motionBlockAvgImpl;
+
+
+#define INBUF_SIZE 4096
+static void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize,
                      char *filename)
 {
     FILE *f;
@@ -127,7 +140,7 @@ void Player::pgm_save(unsigned char *buf, int wrap, int xsize, int ysize,
     fclose(f);
 }
 
-int Player::decode_packet(int *got_frame, int cached)
+int decode_packet(int *got_frame, int cached)
 {
     int ret = 0;
     int decoded = pkt.size;
@@ -147,18 +160,26 @@ int Player::decode_packet(int *got_frame, int cached)
                    frame->format,
                    frame->width, frame->height);
 
-            exstring str = "linesize:";
+            string str = "linesize:";
             for (int i = 0; i < 8; i++) {
-                str.appendf("%d ", frame->linesize[i]);
+                char buf[100];
+                memset(buf, 0x0, sizeof(buf));
+                sprintf(buf, "%d ", frame->linesize[i]);
+                str.append(buf);
             }
 
-            str += " buf : ";
+            str = " buf : ";
             for (int i = 0; i < AV_NUM_DATA_POINTERS; i++) {
-                str.appendf("%p ", frame->data[i]);
+                char buf[100];
+                memset(buf, 0x0, sizeof(buf));
+                if (frame->data[i] != NULL) {
+                    sprintf(buf, "%p ", frame->data[i]);
+                }
+                str.append(buf);
             }
 
             str.append("\n");
-            EXCLOG(LOG_INFO, str);
+            printf("%s", str.c_str());
 
 #if 1
             MotionResult result;
@@ -179,13 +200,13 @@ int Player::decode_packet(int *got_frame, int cached)
                 motionNew = false;
             }
 
-//            /* copy decoded frame to destination buffer:
-//             * this is required since rawvideo expects non aligned data */
-//            av_image_copy(video_dst_data, video_dst_linesize,
-//                          (const uint8_t **)(frame->data), frame->linesize,
-//                          video_dec_ctx->pix_fmt, video_dec_ctx->width, video_dec_ctx->height);
-//            /* write to rawvideo file */
-//            fwrite(video_dst_data[0], 1, video_dst_bufsize, video_dst_file);
+            /* copy decoded frame to destination buffer:
+             * this is required since rawvideo expects non aligned data */
+            av_image_copy(video_dst_data, video_dst_linesize,
+                          (const uint8_t **)(frame->data), frame->linesize,
+                          video_dec_ctx->pix_fmt, video_dec_ctx->width, video_dec_ctx->height);
+            /* write to rawvideo file */
+            fwrite(video_dst_data[0], 1, video_dst_bufsize, video_dst_file);
         }
     } else if (pkt.stream_index == audio_stream_idx) {
         /* decode audio frame */
@@ -220,7 +241,7 @@ int Player::decode_packet(int *got_frame, int cached)
     return decoded;
 }
 
-void Player::decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, char *filename)
+static void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, char *filename)
 {
     char buf[1024];
     int ret;
@@ -247,8 +268,7 @@ void Player::decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, char
     }
 }
 
-int Player::open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, \
-                               enum AVMediaType type, const char* src_filename)
+static int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type, const char* src_filename)
 {
     int ret;
     AVStream *st;
@@ -279,17 +299,35 @@ int Player::open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, \
     return 0;
 }
 
-void Player::play(const char* filename)
+int main(int argc, char** argv)
 {
+    char *filename, *outfilename;
+    const AVCodec *codec;
+    AVCodecParserContext *parser;
+    AVCodecContext *c= NULL;
+    FILE *f;
+    uint8_t inbuf[INBUF_SIZE + AV_INPUT_BUFFER_PADDING_SIZE];
+    uint8_t *data;
+    size_t   data_size;
     int ret;
     int got_frame;
+
+    if (argc <= 2) {
+        fprintf(stderr, "Usage: %s <input file> <output file>\n", argv[0]);
+        exit(0);
+    }
+
+    filename    = argv[1];
+    outfilename = argv[2];
 
     // init motionOptions:
     motionOptions.minBlocks = 10;
     motionOptions.motionMode = 0; // not used
     motionOptions.motionSensitivity = 2;
 
-    motionSearch.setDelegate(this);
+    motionSearch.setDelegate(&motionBlockAvgImpl);
+
+    video_dst_filename = outfilename;
 
     if (avformat_open_input(&fmt_ctx, filename, NULL, NULL) < 0) {
         fprintf(stderr, "Could not open source file %s\n", filename);
@@ -304,13 +342,12 @@ void Player::play(const char* filename)
     if (open_codec_context(&video_stream_idx, fmt_ctx, AVMEDIA_TYPE_VIDEO, filename) >= 0) {
         video_stream = fmt_ctx->streams[video_stream_idx];
         video_dec_ctx = video_stream->codec;
-        
-//        video_dst_file = fopen(video_dst_filename, "wb");
-//        if (!video_dst_file) {
-//            fprintf(stderr, "Could not open destination file %s\n", video_dst_filename);
-//            ret = 1;
-//            goto end;
-//        }
+        video_dst_file = fopen(video_dst_filename, "wb");
+        if (!video_dst_file) {
+            fprintf(stderr, "Could not open destination file %s\n", video_dst_filename);
+            ret = 1;
+            goto end;
+        }
         /* allocate image where the decoded image will be put */
         ret = av_image_alloc(video_dst_data, video_dst_linesize,
                              video_dec_ctx->width, video_dec_ctx->height,
@@ -319,7 +356,7 @@ void Player::play(const char* filename)
             fprintf(stderr, "Could not allocate raw video buffer\n");
             goto end;
         }
-        //video_dst_bufsize = ret;
+        video_dst_bufsize = ret;
     }
 
     /* dump input information to stderr */
@@ -336,20 +373,20 @@ void Player::play(const char* filename)
     av_init_packet(&pkt);
     pkt.data = NULL;
     pkt.size = 0;
-//    if (video_stream)
-//        printf("Demuxing video from file '%s' into '%s'\n", filename, outfilename);
+    if (video_stream)
+        printf("Demuxing video from file '%s' into '%s'\n", filename, outfilename);
 
     /* read frames from the file */
     while (av_read_frame(fmt_ctx, &pkt) >= 0) {
         AVPacket orig_pkt = pkt;
-        //printf("stream index:%u pts:%llu size:%d\n", pkt.stream_index, pkt.pts, pkt.size);
-        EXCLOG(LOG_INFO, "stream index:%u pts:%llu size:%d\n", pkt.stream_index, pkt.pts, pkt.size);
+        printf("stream index:%u pts:%llu size:%d\n", pkt.stream_index, pkt.pts, pkt.size);
         do {
             ret = decode_packet(&got_frame, 0);
             if (ret < 0)
                 break;
             pkt.data += ret;
             pkt.size -= ret;
+            //print("loaded %d bytes\n", ret);
         } while (pkt.size > 0);
         av_free_packet(&orig_pkt);
     }
@@ -359,9 +396,15 @@ void Player::play(const char* filename)
     do {
         decode_packet(&got_frame, 1);
     } while (got_frame);
-    EXCLOG(LOG_INFO, "Demuxing succeeded.");
-end:
-    return;
-}
+    printf("Demuxing succeeded.\n");
+    if (video_stream) {
+        printf("Play the output video file with the command:\n"
+               "ffplay -f rawvideo -pix_fmt %s -video_size %dx%d %s\n",
+               av_get_pix_fmt_name(video_dec_ctx->pix_fmt), video_dec_ctx->width, video_dec_ctx->height,
+               video_dst_filename);
+    }
 
+end:
+    return 0;
+}
 
