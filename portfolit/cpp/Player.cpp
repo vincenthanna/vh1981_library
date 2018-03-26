@@ -205,16 +205,6 @@ int Player::decode_packet(int *got_frame, int cached)
             printf("audio_frame%s n:%d nb_samples:%d\n",
                    cached ? "(cached)" : "",
                    audio_frame_count++, frame->nb_samples);
-
-            /* Write the raw audio data samples of the first plane. This works
-             * fine for packed formats (e.g. AV_SAMPLE_FMT_S16). However,
-             * most audio decoders output planar audio, which uses a separate
-             * plane of audio samples for each channel (e.g. AV_SAMPLE_FMT_S16P).
-             * In other words, this code will write only the first audio channel
-             * in these cases.
-             * You should use libswresample or libavfilter to convert the frame
-             * to packed data. */
-            fwrite(frame->extended_data[0], 1, unpadded_linesize, audio_dst_file);
         }
     }
     return decoded;

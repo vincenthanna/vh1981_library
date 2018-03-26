@@ -2,15 +2,25 @@ CXXFLAGS = -g -std=c++11
 #TRACE_FLAGS =  -Wl,-v
 TARGET = a.out
 CXX = g++
+AR = ar
+RANLIB = ranlib
 
-OBJS = exstring.o exlog.o unittest.o
+LIB_NAME = vh1981_basic
+LIB_FULL_NAME = lib$(LIB_NAME).a
+
+SRCS = exstring.cpp exlog.cpp
+OBJS = $(SRCS:%.cpp=%.o)
 
 LIBS = -lgtest -lpthread
 
-$(TARGET): $(OBJS)
-	$(CXX) $(TRACE_FLAGS) $(CXXFLAGS) -o $@ $(OBJS) $(LIBS) -I /usr/local/include
+all : $(LIB_FULL_NAME)
+
+$(LIB_FULL_NAME) : $(OBJS)
+	$(AR) rcv $@ $(OBJS)
+	$(RANLIB) $@
+	echo $(OBJS)
 	
 clean::
-	rm -rf $(TARGET) $(OBJS)
+	rm -rf $(LIB_FULL_NAME) $(OBJS)
 
 .PHONY: clean

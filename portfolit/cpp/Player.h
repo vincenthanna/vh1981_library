@@ -28,23 +28,24 @@ namespace VideoAnalytics {
      */
 
 	class Player : MotionBlockAvgDelegate {
-        /**
-         @name 생성자/소멸자
-         */
-        //@{
+    /**
+     @name 생성자/소멸자
+     */
+    //@{
+	public:
         Player();
 
         virtual ~Player() {}
-        //@}
+    //@}
 
-        /**
-         @name 속성
-         */
-        //@{
+    /**
+     @name 속성
+     */
+    //@{
         enum {
             INBUF_SIZE = 4096,
-        }
-
+        };
+    private:
         MotionSearch motionSearch;
 
         AVFormatContext *fmt_ctx;
@@ -67,30 +68,33 @@ namespace VideoAnalytics {
         int video_frame_count;
         int audio_frame_count;
 
-        //@}
+    //@}
 
-        /**
-         @name 디코딩 함수
-         */
-        //@{
+    /**
+     @name 디코딩 함수
+     */
+    //@{
+    private:
         void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, char *filename);
         int decode_packet(int *got_frame, int cached);
         void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, char *filename);
         int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, \
                                enum AVMediaType type, const char* src_filename);
-        void play(const char* filename); // FIXME: main()함수를 정리할 것
-        //@}
 
-        /**
-         @name MotionBlockAvgDelegate 구현
-         */
-        //@{
+    public:
+        void play(const char* filename);
+    //@}
+
+    /**
+     @name MotionBlockAvgDelegate 구현
+     */
+    //@{
         void getBlockAvg(const unsigned char *image,
                                              MotionBlockObject *motionAvgData,
                                              unsigned int width,
                                              unsigned int height,
                                              unsigned int stride);
-        //@}
+    //@}
 
 
 	};
