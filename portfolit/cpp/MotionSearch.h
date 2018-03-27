@@ -17,10 +17,7 @@ namespace VideoAnalytics {
     #define MOTION_ZONE_COL_MAX          36
 
     #define MOTION_SEARCH_ROW_COUNT 24
-    #define MOTION_SEARCH_COLUMN_COUNT 32    
-
-    //enum { MBO_DETAIL_LEVEL = 4 };
-    //enum { MBO_PIXEL_COUNT = (MBO_DETAIL_LEVEL * MBO_DETAIL_LEVEL) };
+    #define MOTION_SEARCH_COLUMN_COUNT 32
 
     struct MotionBlockObject {
         uint8_t pixelData;
@@ -28,7 +25,8 @@ namespace VideoAnalytics {
 
     struct MotionResult {
         bool detected;
-        uint32_t time;
+        uint64_t time;
+        MotionResult() : detected(false), time(0) { }
     };
 
     /**

@@ -106,6 +106,16 @@ namespace vh1981lib {
         friend std::ostream& operator<<(std::ostream& os, const exstring& str);
     //@}
 
+    /**
+     @name type casting operator
+     */
+    //@{
+    public:
+        operator const char*() { return _string.c_str(); }
+        operator std::string() { return _string; }
+    //@}
+
+
     public:
         const std::string& to_string() const { return _string; }
         void from_string(const std::string& s) { _string = s; }

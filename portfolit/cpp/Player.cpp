@@ -121,6 +121,8 @@ int Player::decode_packet(int *got_frame, int cached)
 
             // 움직임이 감지된 이미지를 파일로 출력한다.
             if (result.detected) {
+                result.time = frame->pts;
+                _motionsDetected.push_back(result);
                 WriteJPEG(_video_dec_ctx, frame, frame->pts);
             }
         }
@@ -134,19 +136,20 @@ void Player::decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, char
     int ret;
     ret = avcodec_send_packet(dec_ctx, pkt);
     if (ret < 0) {
-        fprintf(stderr, "Error sending a packet for decoding\n");
+        EXCLOG(LOG_ERROR, "Error sending a packet for decoding\n");
         exit(1);
     }
     while (ret >= 0) {
         ret = avcodec_receive_frame(dec_ctx, frame);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             return;
+        }
         else if (ret < 0) {
-            fprintf(stderr, "Error during decoding\n");
+            EXCLOG(LOG_ERROR, "Error during decoding");
             exit(1);
         }
 
-        printf("saving frame %3d\n", dec_ctx->frame_number);
+        EXCLOG(LOG_INFO, "saving frame %3d", dec_ctx->frame_number);
     }
 }
 
@@ -158,50 +161,48 @@ int Player::open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum A
     AVCodec *dec = NULL;
     ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
     if (ret < 0) {
-        fprintf(stderr, "Could not find %s stream in input file '%s'\n",
-                av_get_media_type_string(type), src_filename);
+        EXCLOG(LOG_ERROR, "Could not find %s stream in input file '%s'",
+               av_get_media_type_string(type), src_filename);
         return ret;
-    } else {
+    }
+    else {
         *stream_idx = ret;
         st = fmt_ctx->streams[*stream_idx];
         /* find decoder for the stream */
         dec_ctx = st->codec;
         dec = avcodec_find_decoder(dec_ctx->codec_id);
         if (!dec) {
-            fprintf(stderr, "Failed to find %s codec\n",
-                    av_get_media_type_string(type));
+            EXCLOG(LOG_ERROR, "Failed to find %s codec", av_get_media_type_string(type));
             return ret;
         }
         if ((ret = avcodec_open2(dec_ctx, dec, NULL)) < 0) {
-            fprintf(stderr, "Failed to open %s codec\n",
-                    av_get_media_type_string(type));
+            EXCLOG(LOG_ERROR, "Failed to open %s codec", av_get_media_type_string(type));
             return ret;
         }
     }
     return 0;
 }
 
-int Player::WriteJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
+bool Player::WriteJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
 {
     int got_output = 0;
     int ret;
     AVPacket avPacket;
 
     av_init_packet(&avPacket);
-    avPacket.data = NULL;
+    avPacket.data = nullptr;
     avPacket.size = 0;
 
     AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
     if (!codec) {
         EXCLOG(LOG_ERROR, "Codec not found\n");
-        exit(1);
+        return false;
     }
 
     AVCodecContext* c = avcodec_alloc_context3(codec);
-    if (!c)
-    {
+    if (!c) {
         EXCLOG(LOG_ERROR, "Could not allocate video codec context\n");
-        exit(1);
+        return false;
     }
 
     c->bit_rate = 400000;
@@ -210,29 +211,28 @@ int Player::WriteJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
     c->time_base= (AVRational){1,25};
     c->pix_fmt = AV_PIX_FMT_YUVJ420P;
 
-    if (avcodec_open2(c, codec, NULL) < 0)
-    {
-        printf("Could not open codec\n");
-        exit(1);
+    if (avcodec_open2(c, codec, NULL) < 0) {
+        EXCLOG(LOG_ERROR, "Could not open codec");
+        return false;
     }
-
-
+    
     ret = avcodec_encode_video2(c, &avPacket, frame, &got_output);
-    if (ret < 0)
-    {
-        printf("Error encoding frame\n");
+    if (ret < 0) {
+        EXCLOG(LOG_ERROR, "Error encoding frame");
         exit(1);
     }
 
     if (got_output) {
-        char fname[100];
-        memset(fname, 0x0, sizeof(fname));
-        sprintf(fname, "img_%d.jpg", frame->pts);
-        EXCLOG(LOG_FATAL, "file %s created!", fname);
+        exstring fname;
+        fname.format("img_%lld.jpg", frame->pts);
+        EXCLOG(LOG_INFO, "file %s created!", fname.to_string().c_str());
         FILE* f = fopen(fname, "wb");
         fwrite(avPacket.data, 1, avPacket.size, f);
         av_free_packet(&avPacket);
+        return true;
     }
+
+    return false;
 }
 
 void Player::play(const char* filename)
@@ -245,15 +245,17 @@ void Player::play(const char* filename)
     motionOptions.motionMode = 0; // not used
     motionOptions.motionSensitivity = 4;
 
+    _motionsDetected.clear();
+
     motionSearch.setDelegate(this);
 
     if (avformat_open_input(&_fmt_ctx, filename, NULL, NULL) < 0) {
-        fprintf(stderr, "Could not open source file %s\n", filename);
+        EXCLOG(LOG_ERROR, "Could not open source file %s", filename);
         exit(1);
     }
     /* retrieve stream information */
     if (avformat_find_stream_info(_fmt_ctx, NULL) < 0) {
-        fprintf(stderr, "Could not find stream information\n");
+        EXCLOG(LOG_ERROR, "Could not find stream information");
         exit(1);
     }
 
@@ -266,10 +268,9 @@ void Player::play(const char* filename)
                              _video_dec_ctx->width, _video_dec_ctx->height,
                              _video_dec_ctx->pix_fmt, 1);
         if (ret < 0) {
-            fprintf(stderr, "Could not allocate raw video buffer\n");
+            EXCLOG(LOG_ERROR, "Could not allocate raw video buffer");
             goto end;
         }
-        //video_dst_bufsize = ret;
     }
 
     /* dump input information to stderr */
@@ -277,7 +278,7 @@ void Player::play(const char* filename)
 
     frame = av_frame_alloc();
     if (!frame) {
-        fprintf(stderr, "Could not allocate frame\n");
+        EXCLOG(LOG_ERROR, "Could not allocate frame");
         ret = AVERROR(ENOMEM);
         goto end;
     }
@@ -306,7 +307,14 @@ void Player::play(const char* filename)
     do {
         decode_packet(&got_frame, 1);
     } while (got_frame);
-    EXCLOG(LOG_INFO, "Demuxing succeeded.");
+    EXCLOG(LOG_INFO, "decoding finished.");
+
+    EXCLOG(LOG_INFO, "Motions Settings : MinBlock %d Sensitivity %d",
+           motionOptions.minBlocks, motionOptions.motionSensitivity);
+    EXCLOG(LOG_INFO, "Detected Motions(%d):", _motionsDetected.size());
+    for (auto result : _motionsDetected) {
+        EXCLOG(LOG_INFO, "\tdetected pts:%llu", result.time);
+    }
 end:
     return;
 }

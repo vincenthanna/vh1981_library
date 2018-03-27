@@ -36,12 +36,12 @@ int main(int argc, char** argv)
 {
     char *filename, *outfilename;
 
-    if (argc <= 2) {
-        fprintf(stderr, "Usage: %s <input file> <output file>\n", argv[0]);
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <input file>\n", argv[0]);
         exit(0);
     }
 
-    filename    = argv[1];
+    filename = argv[1];
 
     Player player;
     player.play(filename);

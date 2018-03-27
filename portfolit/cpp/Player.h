@@ -19,6 +19,8 @@ extern "C"
 
 };
 
+#include <vector>
+
 #include "MotionSearch.h"
 
 namespace VideoAnalytics {
@@ -63,6 +65,8 @@ namespace VideoAnalytics {
 
         int video_frame_count;
         int audio_frame_count;
+
+        std::vector<MotionResult> _motionsDetected;
     //@}
 
     /**
@@ -81,7 +85,7 @@ namespace VideoAnalytics {
      */
      //@{
      private:
-        int WriteJPEG (AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo);
+        bool WriteJPEG (AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo);
      //@}
 
     /**
