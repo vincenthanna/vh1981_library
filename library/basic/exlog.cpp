@@ -28,6 +28,9 @@ namespace vh1981lib {
         else if (exlogops::green_yellow == ops.color()) {
             cout << "\x1B[45m\x1B[1;35m";
         }
+        else if (exlogops::purple_green == ops.color()) {
+            cout << "\x1B[47m\x1B[1;31m";
+        }
 
         cout << "<";
         cout << ops.name() << ":" << ops.funcName() << ":" << ops.line();

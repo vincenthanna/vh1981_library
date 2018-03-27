@@ -24,10 +24,10 @@ using namespace VideoAnalytics;
 using namespace vh1981lib;
 
 Player::Player() : motionSearch(),
-    fmt_ctx(nullptr),
-    video_stream_idx(-1), audio_stream_idx(-1),
-    video_dec_ctx(nullptr), audio_dec_ctx(nullptr),
-    video_stream(nullptr), audio_stream(nullptr),
+    _fmt_ctx(nullptr),
+    _video_stream_idx(-1),
+    _video_dec_ctx(nullptr),
+    _video_stream(nullptr),
     frame(nullptr),
     motionOptions(),
     motionNew(true),
@@ -70,32 +70,20 @@ void Player::getBlockAvg(const unsigned char *image,
     return;
 }
 
-void Player::pgm_save(unsigned char *buf, int wrap, int xsize, int ysize,
-                     char *filename)
-{
-    FILE *f;
-    int i;
-    f = fopen(filename,"w");
-    fprintf(f, "P5\n%d %d\n%d\n", xsize, ysize, 255);
-    for (i = 0; i < ysize; i++)
-        fwrite(buf + i * wrap, 1, xsize, f);
-    fclose(f);
-}
-
 int Player::decode_packet(int *got_frame, int cached)
 {
     int ret = 0;
     int decoded = pkt.size;
-    if (pkt.stream_index == video_stream_idx) {
+    if (pkt.stream_index == _video_stream_idx) {
         /* decode video frame */
-        ret = avcodec_decode_video2(video_dec_ctx, frame, got_frame, &pkt);
+        ret = avcodec_decode_video2(_video_dec_ctx, frame, got_frame, &pkt);
         if (ret < 0) {
-            fprintf(stderr, "Error decoding video frame\n");
+            EXCLOG(LOG_ERROR, "Error decoding video frame");
             return ret;
         }
 
         if (*got_frame) {
-            printf("video_frame%s n:%d coded_n:%d size:%d format:%d (%d X %d) \n",
+            EXCLOG(LOG_INFO, "video_frame%s n:%d coded_n:%d size:%d format:%d (%d X %d)",
                    cached ? "(cached)" : "",
                    video_frame_count++, frame->coded_picture_number,
                    frame->pkt_size,
@@ -131,28 +119,10 @@ int Player::decode_packet(int *got_frame, int cached)
                 motionNew = false;
             }
 
+            // 움직임이 감지된 이미지를 파일로 출력한다.
             if (result.detected) {
-                WriteJPEG(video_dec_ctx, frame, frame->pts);
+                WriteJPEG(_video_dec_ctx, frame, frame->pts);
             }
-        }
-    } else if (pkt.stream_index == audio_stream_idx) {
-        /* decode audio frame */
-        ret = avcodec_decode_audio4(audio_dec_ctx, frame, got_frame, &pkt);
-        if (ret < 0) {
-            fprintf(stderr, "Error decoding audio frame\n");
-            return ret;
-        }
-        /* Some audio decoders decode only part of the packet, and have to be
-         * called again with the remainder of the packet data.
-         * Sample: fate-suite/lossless-audio/luckynight-partial.shn
-         * Also, some decoders might over-read the packet. */
-        decoded = FFMIN(ret, pkt.size);
-        if (*got_frame) {
-            AVSampleFormat fmt = (AVSampleFormat)frame->format;
-            size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(fmt);
-            printf("audio_frame%s n:%d nb_samples:%d\n",
-                   cached ? "(cached)" : "",
-                   audio_frame_count++, frame->nb_samples);
         }
     }
     return decoded;
@@ -175,13 +145,8 @@ void Player::decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, char
             fprintf(stderr, "Error during decoding\n");
             exit(1);
         }
+
         printf("saving frame %3d\n", dec_ctx->frame_number);
-        fflush(stdout);
-        /* the picture is allocated by the decoder. no need to
-         free it */
-        snprintf(buf, sizeof(buf), "%s-%d", filename, dec_ctx->frame_number);
-        pgm_save(frame->data[0], frame->linesize[0],
-                 frame->width, frame->height, buf);
     }
 }
 
@@ -227,16 +192,15 @@ int Player::WriteJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
     avPacket.size = 0;
 
     AVCodec* codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
-    if (!codec)
-    {
-        printf("Codec not found\n");
+    if (!codec) {
+        EXCLOG(LOG_ERROR, "Codec not found\n");
         exit(1);
     }
 
     AVCodecContext* c = avcodec_alloc_context3(codec);
     if (!c)
     {
-        printf("Could not allocate video codec context\n");
+        EXCLOG(LOG_ERROR, "Could not allocate video codec context\n");
         exit(1);
     }
 
@@ -260,9 +224,7 @@ int Player::WriteJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
         exit(1);
     }
 
-    if (got_output)
-    {
-        printf("got frame\n");
+    if (got_output) {
         char fname[100];
         memset(fname, 0x0, sizeof(fname));
         sprintf(fname, "img_%d.jpg", frame->pts);
@@ -285,24 +247,24 @@ void Player::play(const char* filename)
 
     motionSearch.setDelegate(this);
 
-    if (avformat_open_input(&fmt_ctx, filename, NULL, NULL) < 0) {
+    if (avformat_open_input(&_fmt_ctx, filename, NULL, NULL) < 0) {
         fprintf(stderr, "Could not open source file %s\n", filename);
         exit(1);
     }
     /* retrieve stream information */
-    if (avformat_find_stream_info(fmt_ctx, NULL) < 0) {
+    if (avformat_find_stream_info(_fmt_ctx, NULL) < 0) {
         fprintf(stderr, "Could not find stream information\n");
         exit(1);
     }
 
-    if (open_codec_context(&video_stream_idx, fmt_ctx, AVMEDIA_TYPE_VIDEO, filename) >= 0) {
-        video_stream = fmt_ctx->streams[video_stream_idx];
-        video_dec_ctx = video_stream->codec;
+    if (open_codec_context(&_video_stream_idx, _fmt_ctx, AVMEDIA_TYPE_VIDEO, filename) >= 0) {
+        _video_stream = _fmt_ctx->streams[_video_stream_idx];
+        _video_dec_ctx = _video_stream->codec;
 
         /* allocate image where the decoded image will be put */
         ret = av_image_alloc(video_dst_data, video_dst_linesize,
-                             video_dec_ctx->width, video_dec_ctx->height,
-                             video_dec_ctx->pix_fmt, 1);
+                             _video_dec_ctx->width, _video_dec_ctx->height,
+                             _video_dec_ctx->pix_fmt, 1);
         if (ret < 0) {
             fprintf(stderr, "Could not allocate raw video buffer\n");
             goto end;
@@ -311,7 +273,7 @@ void Player::play(const char* filename)
     }
 
     /* dump input information to stderr */
-    av_dump_format(fmt_ctx, 0, filename, 0);
+    av_dump_format(_fmt_ctx, 0, filename, 0);
 
     frame = av_frame_alloc();
     if (!frame) {
@@ -324,13 +286,10 @@ void Player::play(const char* filename)
     av_init_packet(&pkt);
     pkt.data = NULL;
     pkt.size = 0;
-//    if (video_stream)
-//        printf("Demuxing video from file '%s' into '%s'\n", filename, outfilename);
 
     /* read frames from the file */
-    while (av_read_frame(fmt_ctx, &pkt) >= 0) {
+    while (av_read_frame(_fmt_ctx, &pkt) >= 0) {
         AVPacket orig_pkt = pkt;
-        //printf("stream index:%u pts:%llu size:%d\n", pkt.stream_index, pkt.pts, pkt.size);
         EXCLOG(LOG_INFO, "stream index:%u pts:%llu size:%d\n", pkt.stream_index, pkt.pts, pkt.size);
         do {
             ret = decode_packet(&got_frame, 0);

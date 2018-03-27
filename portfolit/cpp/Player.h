@@ -48,12 +48,12 @@ namespace VideoAnalytics {
     private:
         MotionSearch motionSearch;
 
-        AVFormatContext *fmt_ctx;
-        int video_stream_idx;
-        int audio_stream_idx;
-        AVCodecContext *video_dec_ctx, *audio_dec_ctx;
-        AVStream *video_stream, *audio_stream;
-        uint8_t *video_dst_data[4] = {NULL};
+        AVFormatContext* _fmt_ctx;
+        int _video_stream_idx;
+        //int audio_stream_idx;
+        AVCodecContext* _video_dec_ctx;
+        AVStream* _video_stream;
+        uint8_t *video_dst_data[4];
         int video_dst_linesize[4];
         AVPacket pkt;
         AVFrame *frame;
@@ -66,29 +66,38 @@ namespace VideoAnalytics {
     //@}
 
     /**
-     @name 디코딩 함수
+     @name decoding
      */
     //@{
     private:
-        void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, char *filename);
         int decode_packet(int *got_frame, int cached);
         void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, char *filename);
-        int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type, const char* src_filename);
-        int WriteJPEG (AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo);
-
-    public:
-        void play(const char* filename);
+        int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type, \
+            const char* src_filename);
     //@}
+
+    /**
+     @name AVFrame을 jpeg 파일로 출력하는 함수
+     */
+     //@{
+     private:
+        int WriteJPEG (AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo);
+     //@}
 
     /**
      @name MotionBlockAvgDelegate 구현
      */
     //@{
-        void getBlockAvg(const unsigned char *image,
-                                             MotionBlockObject *motionAvgData,
-                                             unsigned int width,
-                                             unsigned int height,
-                                             unsigned int stride);
+        void getBlockAvg(const unsigned char *image, MotionBlockObject *motionAvgData, unsigned int width, \
+            unsigned int height, unsigned int stride);
+    //@}
+
+    /**
+     @name 외부 인터페이스
+     */
+    //@{
+     public:
+        void play(const char* filename);
     //@}
 
 
