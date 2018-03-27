@@ -53,21 +53,16 @@ namespace VideoAnalytics {
         int audio_stream_idx;
         AVCodecContext *video_dec_ctx, *audio_dec_ctx;
         AVStream *video_stream, *audio_stream;
-        //char* video_dst_filename;
-//        FILE *video_dst_file;
-//        FILE *audio_dst_file;
         uint8_t *video_dst_data[4] = {NULL};
-        int      video_dst_linesize[4];
-//        int video_dst_bufsize;
+        int video_dst_linesize[4];
         AVPacket pkt;
         AVFrame *frame;
 
-        MCP_MOTION_OPTIONS motionOptions;
+        MotionOptions motionOptions;
         bool motionNew;
 
         int video_frame_count;
         int audio_frame_count;
-
     //@}
 
     /**
@@ -78,8 +73,8 @@ namespace VideoAnalytics {
         void pgm_save(unsigned char *buf, int wrap, int xsize, int ysize, char *filename);
         int decode_packet(int *got_frame, int cached);
         void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, char *filename);
-        int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, \
-                               enum AVMediaType type, const char* src_filename);
+        int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type, const char* src_filename);
+        int WriteJPEG (AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo);
 
     public:
         void play(const char* filename);

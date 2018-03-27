@@ -387,16 +387,13 @@ void MotionSearch::doMotionSearch(
         unsigned int stride,
         unsigned int motionZoneRowCount,
         unsigned int motionZoneColCount,
-        MCP_MOTION_OPTIONS* motionOptions, // it has motionMode, motionSensitivity, minBlocks, motionMask.
+        MotionOptions* motionOptions, // it has motionMode, motionSensitivity, minBlocks, motionMask.
         bool motionNew,                    // motion search start or ongoing.
         uint32_t frameTime,                    // segmentId, time, tick needed when motion detected.
         //unsigned int *detected,            // if detected, set to 1 inside.
         MotionResult *results             // if detected, it's used by caller.
     )
 {
-
-	printf("[%s]%d\n", __FUNCTION__, __LINE__);
-
 	bool resolutionChanged = false;
     int result;
     unsigned int motionMinBlocks=0;
@@ -438,8 +435,7 @@ void MotionSearch::doMotionSearch(
 
     /**
      * calculate compared motion.
-     * refMotionAvgValue is overwritten by differences. and be overwritten by curMotionAvgValue again.
-     * in museum search, refMotionAvgValue is preserved and curMotionAvgValue is overwritten repeatedly.
+     * refMotionAvgValue를 diff로 덮어쓰고 또 curMotionAvgValue 로 덮어 쓴다.
      */
     result = compareMotion(refMotionAvgValue, curMotionAvgValue, inputMotionMask, threshold);
     motionMinBlocks = motionOptions->minBlocks;
@@ -464,7 +460,7 @@ void MotionSearch::doMotionSearch(
 #if 0
             MotionZone<MOTION_SEARCH_ROW_COUNT,MOTION_SEARCH_COLUMN_COUNT> zone;
             MotionBlockObject *mbo;
-            
+
             mbo = refMotionAvgValue;
 
             for (int32_t row = 0; row < motionZoneRowCount; row++) {

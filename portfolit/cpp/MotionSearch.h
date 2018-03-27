@@ -32,7 +32,7 @@ namespace VideoAnalytics {
     };
 
     /**
-     @struct MCP_MOTION_OPTIONS
+     @struct MotionOptions
      @brief motion search에 사용될 option 정보 구조체
      */
     typedef struct {
@@ -40,7 +40,7 @@ namespace VideoAnalytics {
         uint32_t motionSensitivity;
         uint32_t minBlocks;
         uint8_t motionMask[84];
-    } MCP_MOTION_OPTIONS;
+    } MotionOptions;
 
     /**
      @class MotionBlockAvgDelegate
@@ -139,7 +139,7 @@ namespace VideoAnalytics {
             uint32_t stride,
             uint32_t motionZoneRowCount,
             uint32_t motionZoneColCount,
-            MCP_MOTION_OPTIONS* motionOptions,  // it has motionMode, motionSensitivity, minBlocks, motionMask.
+            MotionOptions* motionOptions,  // it has motionMode, motionSensitivity, minBlocks, motionMask.
             bool motionNew,                     // motion search start or ongoing
             uint32_t frameTime,
             //uint32_t *detected,             // if detected, set to 1 inside.
