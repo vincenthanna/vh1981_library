@@ -5,13 +5,24 @@ CXX = g++
 
 CXXFLAGS += -D__STDC_CONSTANT_MACROS
 
-LFLAGS_ALL := -L ../../library/basic/
-
 LIBS = -lvh1981_basic
+
+SUBDIRS += ../../library/basic
 
 OBJS = Player.o MotionSearch.o Main.o
 LIBS += -lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale -lavfilter -lswresample -lavdevice -lrt -lpthread -ldl # linux
 #LIBS = -lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale -lavfilter -lswresample -lavdevice -lpthread -ldl # OSX
+
+all : subdirs
+
+subdirs:
+	@for dir in $(SUBDIRS); do\
+		$(MAKE) -C $$dir;\
+	done 
+
+LFLAGS_ALL := -L ../../library/basic/
+
+all : subdirs $(OBJS) $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CXX) $(TRACE_FLAGS) $(CXXFLAGS) -o $@ $(OBJS) $(LFLAGS_ALL) $(LIBS) -I /usr/local/include 
