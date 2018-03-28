@@ -23,23 +23,15 @@ using namespace std;
 using namespace VideoAnalytics;
 using namespace vh1981lib;
 
-Player::Player() : motionSearch(),
+Player::Player() : _motionSearch(),
     _fmt_ctx(nullptr),
     _video_stream_idx(-1),
     _video_dec_ctx(nullptr),
     _video_stream(nullptr),
     frame(nullptr),
-    motionOptions(),
-    motionNew(true),
-    video_frame_count(0), audio_frame_count(0)
+    _motionOptions(),
+    _motionNew(true)
 {
-    array_access(video_dst_data, i) {
-        video_dst_data[i] = nullptr;
-    }
-
-    array_access(video_dst_linesize, i) {
-        video_dst_linesize[i] = 0;
-    }
 }
 
 void Player::getBlockAvg(const unsigned char *image,
@@ -83,12 +75,9 @@ int Player::decode_packet(int *got_frame, int cached)
         }
 
         if (*got_frame) {
-            EXCLOG(LOG_INFO, "video_frame%s n:%d coded_n:%d size:%d format:%d (%d X %d)",
-                   cached ? "(cached)" : "",
-                   video_frame_count++, frame->coded_picture_number,
-                   frame->pkt_size,
-                   frame->format,
-                   frame->width, frame->height);
+            EXCLOG(LOG_INFO, "video_frame%s coded_n:%d size:%d format:%d (%d X %d)", \
+                   cached ? "(cached)" : "", frame->coded_picture_number, frame->pkt_size, \
+                   frame->format,frame->width, frame->height);
 
             exstring str = "linesize:";
             for (int i = 0; i < 8; i++) {
@@ -104,62 +93,39 @@ int Player::decode_packet(int *got_frame, int cached)
             EXCLOG(LOG_INFO, str);
 
             MotionResult result;
-            motionSearch.doMotionSearch(frame->data[0],
+            _motionSearch.doMotionSearch(frame->data[0],
                                         frame->width,
                                         frame->height,
                                         frame->linesize[0],
                                         MOTION_SEARCH_ROW_COUNT,
                                         MOTION_SEARCH_COLUMN_COUNT,
-                                        &motionOptions,
-                                        motionNew,
+                                        &_motionOptions,
+                                        _motionNew,
                                         frame->pts,
                                         &result);
 
-            if (motionNew) {
-                motionNew = false;
+            if (_motionNew) {
+                _motionNew = false;
             }
 
             // 움직임이 감지된 이미지를 파일로 출력한다.
             if (result.detected) {
                 result.time = frame->pts;
                 _motionsDetected.push_back(result);
-                WriteJPEG(_video_dec_ctx, frame, frame->pts);
+                writeJPEG(_video_dec_ctx, frame, frame->pts);
             }
         }
     }
     return decoded;
 }
 
-void Player::decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, char *filename)
-{
-    char buf[1024];
-    int ret;
-    ret = avcodec_send_packet(dec_ctx, pkt);
-    if (ret < 0) {
-        EXCLOG(LOG_ERROR, "Error sending a packet for decoding\n");
-        exit(1);
-    }
-    while (ret >= 0) {
-        ret = avcodec_receive_frame(dec_ctx, frame);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            return;
-        }
-        else if (ret < 0) {
-            EXCLOG(LOG_ERROR, "Error during decoding");
-            exit(1);
-        }
-
-        EXCLOG(LOG_INFO, "saving frame %3d", dec_ctx->frame_number);
-    }
-}
-
 int Player::open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type, const char* src_filename)
 {
     int ret;
     AVStream *st;
-    AVCodecContext *dec_ctx = NULL;
-    AVCodec *dec = NULL;
-    ret = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
+    AVCodecContext *dec_ctx = nullptr;
+    AVCodec *dec = nullptr;
+    ret = av_find_best_stream(fmt_ctx, type, -1, -1, nullptr, 0);
     if (ret < 0) {
         EXCLOG(LOG_ERROR, "Could not find %s stream in input file '%s'",
                av_get_media_type_string(type), src_filename);
@@ -168,14 +134,14 @@ int Player::open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum A
     else {
         *stream_idx = ret;
         st = fmt_ctx->streams[*stream_idx];
-        /* find decoder for the stream */
+        // find decoder for the stream
         dec_ctx = st->codec;
         dec = avcodec_find_decoder(dec_ctx->codec_id);
         if (!dec) {
             EXCLOG(LOG_ERROR, "Failed to find %s codec", av_get_media_type_string(type));
             return ret;
         }
-        if ((ret = avcodec_open2(dec_ctx, dec, NULL)) < 0) {
+        if ((ret = avcodec_open2(dec_ctx, dec, nullptr)) < 0) {
             EXCLOG(LOG_ERROR, "Failed to open %s codec", av_get_media_type_string(type));
             return ret;
         }
@@ -183,7 +149,7 @@ int Player::open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum A
     return 0;
 }
 
-bool Player::WriteJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
+bool Player::writeJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
 {
     int got_output = 0;
     int ret;
@@ -205,13 +171,13 @@ bool Player::WriteJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
         return false;
     }
 
-    c->bit_rate = 400000;
-    c->width = frame->width;
-    c->height = frame->height;
+    c->bit_rate = 500000;
+    c->width = pFrame->width;
+    c->height = pFrame->height;
     c->time_base= (AVRational){1,25};
     c->pix_fmt = AV_PIX_FMT_YUVJ420P;
 
-    if (avcodec_open2(c, codec, NULL) < 0) {
+    if (avcodec_open2(c, codec, nullptr) < 0) {
         EXCLOG(LOG_ERROR, "Could not open codec");
         return false;
     }
@@ -235,35 +201,35 @@ bool Player::WriteJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
     return false;
 }
 
-void Player::play(const char* filename)
+void Player::play(const char* filename, MotionOptions motionOptions)
 {
     int ret;
     int got_frame;
+    uint8_t* video_dst_data[4] = {nullptr,};
+    int video_dst_linesize[4] = {0,};
 
-    // init motionOptions:
-    motionOptions.minBlocks = 4;
-    motionOptions.motionMode = 0; // not used
-    motionOptions.motionSensitivity = 4;
+    _motionOptions = motionOptions;
 
     _motionsDetected.clear();
 
-    motionSearch.setDelegate(this);
+    _motionSearch.setDelegate(this);
 
-    if (avformat_open_input(&_fmt_ctx, filename, NULL, NULL) < 0) {
+    if (avformat_open_input(&_fmt_ctx, filename, /*input format : autoDetect*/ nullptr, nullptr) < 0) {
         EXCLOG(LOG_ERROR, "Could not open source file %s", filename);
-        exit(1);
+        return;
     }
-    /* retrieve stream information */
-    if (avformat_find_stream_info(_fmt_ctx, NULL) < 0) {
+
+    // retrieve stream information
+    if (avformat_find_stream_info(_fmt_ctx, nullptr) < 0) {
         EXCLOG(LOG_ERROR, "Could not find stream information");
-        exit(1);
+        return;
     }
 
     if (open_codec_context(&_video_stream_idx, _fmt_ctx, AVMEDIA_TYPE_VIDEO, filename) >= 0) {
         _video_stream = _fmt_ctx->streams[_video_stream_idx];
         _video_dec_ctx = _video_stream->codec;
 
-        /* allocate image where the decoded image will be put */
+        // allocate image where the decoded image will be put
         ret = av_image_alloc(video_dst_data, video_dst_linesize,
                              _video_dec_ctx->width, _video_dec_ctx->height,
                              _video_dec_ctx->pix_fmt, 1);
@@ -273,7 +239,7 @@ void Player::play(const char* filename)
         }
     }
 
-    /* dump input information to stderr */
+    // dump input information to stderr
     av_dump_format(_fmt_ctx, 0, filename, 0);
 
     frame = av_frame_alloc();
@@ -283,12 +249,12 @@ void Player::play(const char* filename)
         goto end;
     }
 
-    /* initialize packet, set data to NULL, let the demuxer fill it */
+    // initialize packet, set data to NULL, let the demuxer fill it
     av_init_packet(&pkt);
-    pkt.data = NULL;
+    pkt.data = nullptr;
     pkt.size = 0;
 
-    /* read frames from the file */
+    // read frames from the file
     while (av_read_frame(_fmt_ctx, &pkt) >= 0) {
         AVPacket orig_pkt = pkt;
         EXCLOG(LOG_INFO, "stream index:%u pts:%llu size:%d\n", pkt.stream_index, pkt.pts, pkt.size);
@@ -301,8 +267,9 @@ void Player::play(const char* filename)
         } while (pkt.size > 0);
         av_free_packet(&orig_pkt);
     }
-    /* flush cached frames */
-    pkt.data = NULL;
+
+    // flush cached frames
+    pkt.data = nullptr;
     pkt.size = 0;
     do {
         decode_packet(&got_frame, 1);
@@ -310,7 +277,7 @@ void Player::play(const char* filename)
     EXCLOG(LOG_INFO, "decoding finished.");
 
     EXCLOG(LOG_INFO, "Motions Settings : MinBlock %d Sensitivity %d",
-           motionOptions.minBlocks, motionOptions.motionSensitivity);
+           _motionOptions.minBlocks, _motionOptions.motionSensitivity);
     EXCLOG(LOG_INFO, "Detected Motions(%d):", _motionsDetected.size());
     for (auto result : _motionsDetected) {
         EXCLOG(LOG_INFO, "\tdetected pts:%llu", result.time);

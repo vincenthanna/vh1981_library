@@ -93,14 +93,13 @@ MotionSearch::MotionSearch() : _delegate(nullptr)
 void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, const char* title)
 {
     int32_t i, j;
-    printf("start\n");
 
     char linebuf[8192 * 2];
     ::memset(linebuf, 0x0, sizeof(linebuf));
 
     char buffer[1024];
     memset(buffer,0x0,sizeof(buffer));
-    sprintf(buffer, "[%s]\n", title);
+    sprintf(buffer, "Motion Map : [\033[93m%s\033[0m]\n", title);
     strcat(linebuf, buffer);
 
     memset(buffer,0x0,sizeof(buffer));
@@ -125,7 +124,7 @@ void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, const
         strcat(linebuf, buffer);
         for (j=0;j<MOTION_SEARCH_COLUMN_COUNT;j++){
             memset(buffer,0x0,sizeof(buffer));
-            uint32_t backColor = ((calculatedMotionValue[ i*MOTION_SEARCH_COLUMN_COUNT + j ].pixelData)/40);
+            uint32_t backColor = ((calculatedMotionValue[ i*MOTION_SEARCH_COLUMN_COUNT + j ].pixelData) / 40);
 
             sprintf(buffer, "\33[%dm%2x \33[0m", 40+backColor, calculatedMotionValue[ i*MOTION_SEARCH_COLUMN_COUNT + j ].pixelData);
             strcat(linebuf, buffer);
@@ -140,8 +139,6 @@ void MotionSearch::dumpMotionMap(MotionBlockObject* calculatedMotionValue, const
     strcat(linebuf, buffer);
 
     fprintf(stderr, "%s", linebuf);
-    printf("linebuf len=%d\n", strlen(linebuf));
-    printf("end\n");
 }
 
 
@@ -300,8 +297,6 @@ int MotionSearch::checkConnectedComponent(MotionBlockObject* motionDataDifferenc
                             }
                         }
 
-                        //trace("sft=%d stt=%d row=%d col=%d\n", stackFinalTop, stackTemporaryTop, (value>>16), (value & 0x0000ffff)  );
-
                         // push current block to stackFinal and set checked.
                         stackFinal[stackFinalTop++] = value;
 
@@ -329,15 +324,6 @@ int MotionSearch::checkConnectedComponent(MotionBlockObject* motionDataDifferenc
             }// if (motionDataDifference[ blkRow * MOTION_SEARCH_ROW_COUNT + blkCol])
         }// for (blkCol=0 ; blkCol < MOTION_SEARCH_COLUMN_COUNT ; blkCol++) {
     }// for (blkRow=0 ; blkRow < MOTION_SEARCH_ROW_COUNT ; blkRow++) {
-
-    // for debug(delete later):
-
-#if 0
-    trace("detected group=");
-    for(i=0;i<stackGroupTop;i++)
-        trace("%d ", stackGroup[i]);
-    trace(" count=%d\n", stackGroupTop);
-#endif
 
     /**
      * Make Decision(detected or not.):
@@ -455,23 +441,6 @@ void MotionSearch::doMotionSearch(
             //*detected = 1;
 
             dumpMotionMap(refMotionAvgValue, "detected");
-
-            // 아래 코드는 필요 없음
-#if 0
-            MotionZone<MOTION_SEARCH_ROW_COUNT,MOTION_SEARCH_COLUMN_COUNT> zone;
-            MotionBlockObject *mbo;
-
-            mbo = refMotionAvgValue;
-
-            for (int32_t row = 0; row < motionZoneRowCount; row++) {
-                for (int32_t col = 0; col < motionZoneColCount; col++) {
-                    uint32_t blkPos = row * motionZoneColCount + col;
-                    zone.setZone(row, col, mbo[blkPos].pixelData ? true : false);
-                }
-            }
-            memcpy(motionData->motionMask, zone.zone(), (motionZoneRowCount * motionZoneColCount) >> 3);
-#endif
-
         }
     }
 

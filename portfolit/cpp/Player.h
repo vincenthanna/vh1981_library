@@ -48,23 +48,16 @@ namespace VideoAnalytics {
             INBUF_SIZE = 4096,
         };
     private:
-        MotionSearch motionSearch;
+        MotionSearch _motionSearch;
 
         AVFormatContext* _fmt_ctx;
         int _video_stream_idx;
-        //int audio_stream_idx;
         AVCodecContext* _video_dec_ctx;
         AVStream* _video_stream;
-        uint8_t *video_dst_data[4];
-        int video_dst_linesize[4];
         AVPacket pkt;
         AVFrame *frame;
-
-        MotionOptions motionOptions;
-        bool motionNew;
-
-        int video_frame_count;
-        int audio_frame_count;
+        MotionOptions _motionOptions;
+        bool _motionNew;
 
         std::vector<MotionResult> _motionsDetected;
     //@}
@@ -75,7 +68,6 @@ namespace VideoAnalytics {
     //@{
     private:
         int decode_packet(int *got_frame, int cached);
-        void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt, char *filename);
         int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type, \
             const char* src_filename);
     //@}
@@ -85,7 +77,7 @@ namespace VideoAnalytics {
      */
      //@{
      private:
-        bool WriteJPEG (AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo);
+        bool writeJPEG (AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo);
      //@}
 
     /**
@@ -101,7 +93,7 @@ namespace VideoAnalytics {
      */
     //@{
      public:
-        void play(const char* filename);
+        void play(const char* filename, MotionOptions motionOptions);
     //@}
 
 

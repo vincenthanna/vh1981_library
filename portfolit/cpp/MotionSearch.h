@@ -16,8 +16,8 @@ namespace VideoAnalytics {
     #define MOTION_ZONE_ROW_MAX          28
     #define MOTION_ZONE_COL_MAX          36
 
-    #define MOTION_SEARCH_ROW_COUNT 24
-    #define MOTION_SEARCH_COLUMN_COUNT 32
+    #define MOTION_SEARCH_ROW_COUNT     24
+    #define MOTION_SEARCH_COLUMN_COUNT  32
 
     struct MotionBlockObject {
         uint8_t pixelData;
@@ -34,10 +34,8 @@ namespace VideoAnalytics {
      @brief motion search에 사용될 option 정보 구조체
      */
     typedef struct {
-        uint32_t motionMode;
         uint32_t motionSensitivity;
         uint32_t minBlocks;
-        uint8_t motionMask[84];
     } MotionOptions;
 
     /**
@@ -82,6 +80,26 @@ namespace VideoAnalytics {
     };
 
     class MotionSearch {
+    /**
+     @name 생성 및 소멸.
+     */
+    //@{
+    public:
+        /**
+         기본 생성자
+         */
+        MotionSearch();
+
+        /**
+         소멸자
+         */
+        virtual ~MotionSearch() {}
+    //@}
+
+    /**
+     @name 속성
+     */
+    //@{
     private:
         uint32_t _width;
         uint32_t _height;
@@ -111,10 +129,7 @@ namespace VideoAnalytics {
         uint32_t lastDetectedFrameTime;
 
         MotionBlockAvgDelegate* _delegate;
-
-    public:
-        MotionSearch();
-        virtual ~MotionSearch() {}
+    //@}
 
     private:
         inline int32_t pixToBlk(uint32_t x, uint32_t y, uint32_t* pbx, uint32_t* pby);
@@ -140,7 +155,6 @@ namespace VideoAnalytics {
             MotionOptions* motionOptions,  // it has motionMode, motionSensitivity, minBlocks, motionMask.
             bool motionNew,                     // motion search start or ongoing
             uint32_t frameTime,
-            //uint32_t *detected,             // if detected, set to 1 inside.
             MotionResult *result);            // if detected, it's used by caller.
     };
 

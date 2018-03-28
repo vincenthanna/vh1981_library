@@ -44,7 +44,12 @@ int main(int argc, char** argv)
     filename = argv[1];
 
     Player player;
-    player.play(filename);
+
+    MotionOptions motionOptions;
+    motionOptions.minBlocks = 4;
+    motionOptions.motionSensitivity = 4;
+
+    player.play(filename, motionOptions);
 
     return 0;
 }
