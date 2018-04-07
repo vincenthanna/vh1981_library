@@ -54,8 +54,8 @@ namespace VideoAnalytics {
         int _video_stream_idx;
         AVCodecContext* _video_dec_ctx;
         AVStream* _video_stream;
-        AVPacket pkt;
-        AVFrame *frame;
+        //AVPacket pkt;
+        //AVFrame *frame;
         MotionOptions _motionOptions;
         bool _motionNew;
 
@@ -67,8 +67,8 @@ namespace VideoAnalytics {
      */
     //@{
     private:
-        int decode_packet(int *got_frame, int cached);
-        int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type, \
+        int decode_packet(const AVPacket& pkt, AVFrame *frame, int *got_frame, int cached);
+        bool open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type, \
             const char* src_filename);
     //@}
 
@@ -77,7 +77,7 @@ namespace VideoAnalytics {
      */
      //@{
      private:
-        bool writeJPEG (AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo);
+        bool writeJPEG (AVFrame *pFrame, int FrameNo);
      //@}
 
     /**

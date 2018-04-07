@@ -28,7 +28,6 @@ Player::Player() : _motionSearch(),
     _video_stream_idx(-1),
     _video_dec_ctx(nullptr),
     _video_stream(nullptr),
-    frame(nullptr),
     _motionOptions(),
     _motionNew(true)
 {
@@ -62,10 +61,11 @@ void Player::getBlockAvg(const unsigned char *image,
     return;
 }
 
-int Player::decode_packet(int *got_frame, int cached)
+int Player::decode_packet(const AVPacket& pkt, AVFrame *frame, int *got_frame, int cached)
 {
     int ret = 0;
     int decoded = pkt.size;
+    // video stream 처리 :
     if (pkt.stream_index == _video_stream_idx) {
         /* decode video frame */
         ret = avcodec_decode_video2(_video_dec_ctx, frame, got_frame, &pkt);
@@ -112,44 +112,56 @@ int Player::decode_packet(int *got_frame, int cached)
             if (result.detected) {
                 result.time = frame->pts;
                 _motionsDetected.push_back(result);
-                writeJPEG(_video_dec_ctx, frame, frame->pts);
+                writeJPEG(frame, frame->pts);
             }
         }
     }
     return decoded;
 }
 
-int Player::open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type, const char* src_filename)
+bool Player::open_codec_context(int *stream_idx,
+    AVFormatContext *fmt_ctx,
+    enum AVMediaType type, // 오디오/비디오/데이터/자막... 등의 종류를 구분
+    const char* src_filename)
 {
     int ret;
     AVStream *st;
     AVCodecContext *dec_ctx = nullptr;
     AVCodec *dec = nullptr;
-    ret = av_find_best_stream(fmt_ctx, type, -1, -1, nullptr, 0);
+    ret = av_find_best_stream(fmt_ctx,
+        type,
+        -1, // 원하는 stream 번호, -1이면 autodetect
+        -1, // ?? 모름
+        nullptr, // 선택된 디코더를 얻고 싶으면 AVCodec**, 아니면 NULL.
+        0); // flags. 지금은 사용되지 않고 있음.
+
     if (ret < 0) {
         EXCLOG(LOG_ERROR, "Could not find %s stream in input file '%s'",
                av_get_media_type_string(type), src_filename);
-        return ret;
+        return false;
     }
     else {
         *stream_idx = ret;
         st = fmt_ctx->streams[*stream_idx];
-        // find decoder for the stream
-        dec_ctx = st->codec;
-        dec = avcodec_find_decoder(dec_ctx->codec_id);
+
+        // FIXME: 아래 코드는 그냥 열어보기만 하는듯. 동작에는 특별히 영향이 없다.
+        //@{
+        dec = avcodec_find_decoder(st->codecpar->codec_id);
         if (!dec) {
             EXCLOG(LOG_ERROR, "Failed to find %s codec", av_get_media_type_string(type));
-            return ret;
+            return false;
         }
+
         if ((ret = avcodec_open2(dec_ctx, dec, nullptr)) < 0) {
             EXCLOG(LOG_ERROR, "Failed to open %s codec", av_get_media_type_string(type));
-            return ret;
+            return false;
         }
+        //@}
     }
-    return 0;
+    return ret;
 }
 
-bool Player::writeJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
+bool Player::writeJPEG(AVFrame *pFrame, int FrameNo)
 {
     int got_output = 0;
     int ret;
@@ -175,14 +187,16 @@ bool Player::writeJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
     c->width = pFrame->width;
     c->height = pFrame->height;
     c->time_base= (AVRational){1,25};
-    c->pix_fmt = AV_PIX_FMT_YUVJ420P;
+    c->pix_fmt = pFrame->format;
 
     if (avcodec_open2(c, codec, nullptr) < 0) {
         EXCLOG(LOG_ERROR, "Could not open codec");
         return false;
     }
     
-    ret = avcodec_encode_video2(c, &avPacket, frame, &got_output);
+    bool succeeded = false;
+
+    ret = avcodec_encode_video2(c, &avPacket, pFrame, &got_output);
     if (ret < 0) {
         EXCLOG(LOG_ERROR, "Error encoding frame");
         exit(1);
@@ -190,15 +204,17 @@ bool Player::writeJPEG(AVCodecContext *pCodecCtx, AVFrame *pFrame, int FrameNo)
 
     if (got_output) {
         exstring fname;
-        fname.format("img_%lld.jpg", frame->pts);
+        fname.format("img_%lld.jpg", pFrame->pts);
         EXCLOG(LOG_INFO, "file %s created!", fname.to_string().c_str());
         FILE* f = fopen(fname, "wb");
         fwrite(avPacket.data, 1, avPacket.size, f);
         av_free_packet(&avPacket);
-        return true;
+        succeeded = true;
     }
 
-    return false;
+    avcodec_free_context(&c);
+
+    return succeeded;
 }
 
 void Player::play(const char* filename, MotionOptions motionOptions)
@@ -214,6 +230,7 @@ void Player::play(const char* filename, MotionOptions motionOptions)
 
     _motionSearch.setDelegate(this);
 
+    // 파일 경로로 context를 open한다.
     if (avformat_open_input(&_fmt_ctx, filename, /*input format : autoDetect*/ nullptr, nullptr) < 0) {
         EXCLOG(LOG_ERROR, "Could not open source file %s", filename);
         return;
@@ -229,20 +246,29 @@ void Player::play(const char* filename, MotionOptions motionOptions)
         _video_stream = _fmt_ctx->streams[_video_stream_idx];
         _video_dec_ctx = _video_stream->codec;
 
+        // 아래 코드도 필요없다.
+#if 0
         // allocate image where the decoded image will be put
         ret = av_image_alloc(video_dst_data, video_dst_linesize,
                              _video_dec_ctx->width, _video_dec_ctx->height,
                              _video_dec_ctx->pix_fmt, 1);
+#endif
+
         if (ret < 0) {
             EXCLOG(LOG_ERROR, "Could not allocate raw video buffer");
             goto end;
         }
     }
+    else {
+        EXCLOG(LOG_ERROR, "open_codec_context() failed!");
+        goto end;
+    }
+
 
     // dump input information to stderr
     av_dump_format(_fmt_ctx, 0, filename, 0);
 
-    frame = av_frame_alloc();
+    AVFrame* frame = av_frame_alloc();
     if (!frame) {
         EXCLOG(LOG_ERROR, "Could not allocate frame");
         ret = AVERROR(ENOMEM);
@@ -250,6 +276,7 @@ void Player::play(const char* filename, MotionOptions motionOptions)
     }
 
     // initialize packet, set data to NULL, let the demuxer fill it
+    AVPacket pkt;
     av_init_packet(&pkt);
     pkt.data = nullptr;
     pkt.size = 0;
@@ -258,22 +285,31 @@ void Player::play(const char* filename, MotionOptions motionOptions)
     while (av_read_frame(_fmt_ctx, &pkt) >= 0) {
         AVPacket orig_pkt = pkt;
         EXCLOG(LOG_INFO, "stream index:%u pts:%llu size:%d\n", pkt.stream_index, pkt.pts, pkt.size);
+        // 읽어들인 pkt에서 1 or N개의 프레임을 읽어들인다.
+        //@{
         do {
-            ret = decode_packet(&got_frame, 0);
+            ret = decode_packet(pkt, frame, &got_frame, 0);
             if (ret < 0)
                 break;
             pkt.data += ret;
             pkt.size -= ret;
         } while (pkt.size > 0);
-        av_free_packet(&orig_pkt);
+        //@}
+
+        av_packet_unref(&orig_pkt); // AVPacket을 모두 사용하였으면 꼭 호출해 준다.
     }
 
     // flush cached frames
+    //@{
     pkt.data = nullptr;
     pkt.size = 0;
     do {
-        decode_packet(&got_frame, 1);
+        decode_packet(pkt, frame, &got_frame, 1);
     } while (got_frame);
+    //@}
+
+    av_frame_free(&frame); // AVFrame 할당한 버퍼를 해제한다.
+
     EXCLOG(LOG_INFO, "decoding finished.");
 
     EXCLOG(LOG_INFO, "Motions Settings : MinBlock %d Sensitivity %d",
