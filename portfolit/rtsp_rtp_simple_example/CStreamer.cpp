@@ -1,3 +1,9 @@
+#ifndef EXLOG_NAME
+    #undef EXLOG_NAME
+    #define EXLOG_NAME "CStreamer"
+#endif
+#include "library/basic/exlog.h"
+
 // MediaLAN 02/2013
 // CRtspSession
 // - JPEG packetizer and UDP/TCP based streaming
@@ -12,6 +18,9 @@
 #include <sys/socket.h>
 
 #include "types.h"
+
+using namespace std;
+using namespace vh1981lib;
 
 CStreamer::CStreamer(SOCKET aClient):m_Client(aClient)
 {
@@ -46,6 +55,11 @@ void CStreamer::SendRtpPacket(unsigned char * Jpeg, int JpegLen, int Chn)
     getpeername(m_Client,(struct sockaddr*)&RecvAddr,&RecvLen);
     RecvAddr.sin_family = AF_INET;
     RecvAddr.sin_port   = htons(m_RtpClientPort);
+
+
+    char str[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(RecvAddr.sin_addr), str, INET_ADDRSTRLEN);
+    EXCLOG(LOG_INFO, "addr=%s port=%d", str, RecvAddr.sin_port);
 
     memset(RtpBuf,0x00,sizeof(RtpBuf));
     // Prepare the first 4 byte of the packet. This is the Rtp over Rtsp header in case of TCP based transport

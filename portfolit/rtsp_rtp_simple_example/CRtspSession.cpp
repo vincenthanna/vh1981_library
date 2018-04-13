@@ -1,3 +1,8 @@
+#ifndef EXLOG_NAME
+    #undef EXLOG_NAME
+    #define EXLOG_NAME "CRtspSession"
+#endif
+
 // MediaLAN 02/2013
 // CRtspSession
 // - parsing of RTSP requests and generation of RTSP responses
@@ -9,7 +14,12 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include "library/basic/exlog.h"
+
 #include "JPEGSamples.h"
+
+using namespace std;
+using namespace vh1981lib;
 
 CRtspSession::CRtspSession(SOCKET aRtspClient, CStreamer * aStreamer):m_RtspClient(aRtspClient),m_Streamer(aStreamer)
 {
@@ -17,7 +27,7 @@ CRtspSession::CRtspSession(SOCKET aRtspClient, CStreamer * aStreamer):m_RtspClie
 
     m_RtspSessionID  = rand() << 16;         // create a session ID
     m_RtspSessionID |= rand();
-    m_RtspSessionID |= 0x80000000;         
+    //m_RtspSessionID |= 0x80000000;
     m_StreamID       = -1;
     m_ClientRTPPort  =  0;
     m_ClientRTCPPort =  0;
@@ -104,8 +114,6 @@ bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize
     if (strstr(CmdName,"PLAY")      != nullptr) m_RtspCmdType = RTSP_PLAY;     else
     if (strstr(CmdName,"TEARDOWN")  != nullptr) m_RtspCmdType = RTSP_TEARDOWN;
 
-    printf("[%s]%d CmdName=%s\n", __FUNCTION__, __LINE__, CmdName);
-
     // check whether the request contains transport information (UDP or TCP)
     if (m_RtspCmdType == RTSP_SETUP)
     {
@@ -141,8 +149,6 @@ bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize
             break;
         }
     }
-
-    printf("[%s]%d m_URLHostPort=%s\n", __FUNCTION__, __LINE__, m_URLHostPort);
 
     // Look for the URL suffix (before the following "RTSP/"):
     parseSucceeded = false;
@@ -232,7 +238,7 @@ RTSP_CMD_TYPES CRtspSession::Handle_RtspRequest(char const * aRequest, unsigned 
         printf("ParseRtspRequest() failed!\n");
     }
     if (ParseRtspRequest(aRequest,aRequestSize)) {
-        printf("m_RtspCmdType = %d\n", m_RtspCmdType);
+        EXCLOG(LOG_INFO, "m_RtspCmdType=%d", m_RtspCmdType);
         switch (m_RtspCmdType) {
             case RTSP_OPTIONS:  { Handle_RtspOPTION();   break; };
             case RTSP_DESCRIBE: { Handle_RtspDESCRIBE(); break; };
@@ -240,7 +246,10 @@ RTSP_CMD_TYPES CRtspSession::Handle_RtspRequest(char const * aRequest, unsigned 
             case RTSP_PLAY:     { Handle_RtspPLAY();     break; };
             default: {};
         };
-    };
+    }
+    else {
+        EXCLOG(LOG_ERROR, "ParseRtspRequest() failed! : %s", aRequest);
+    }
     return m_RtspCmdType;
 };
 
@@ -307,7 +316,7 @@ void CRtspSession::Handle_RtspDESCRIBE()
         "%s\r\n"
         "Content-Base: %s/\r\n"
         "Content-Type: application/sdp\r\n"
-        "Content-Length: %d\r\n\r\n"
+        "Content-Length: %u\r\n\r\n"
         "%s",
         m_CSeq,
         DateHeader(),
@@ -322,6 +331,9 @@ void CRtspSession::Handle_RtspSETUP()
 {
     char Response[1024];
     char Transport[255];
+
+    memset(Response, 0x0, sizeof(Response));
+    memset(Transport, 0x0, sizeof(Transport));
 
     // init RTP streamer transport type (UDP or TCP) and ports for UDP transport
     m_Streamer->InitTransport(m_ClientRTPPort,m_ClientRTCPPort,m_TcpTransport);
@@ -340,11 +352,12 @@ void CRtspSession::Handle_RtspSETUP()
         "RTSP/1.0 200 OK\r\nCSeq: %s\r\n"
         "%s\r\n"
         "Transport: %s\r\n"
-        "Session: %i\r\n\r\n",
+        "Session: %u\r\n\r\n",
         m_CSeq,
         DateHeader(),
         Transport,
         m_RtspSessionID);
+    EXCLOG(LOG_INFO, "Response:\n%s", Response);
 
     send(m_RtspClient,Response,strlen(Response),0);
 }
@@ -358,7 +371,7 @@ void CRtspSession::Handle_RtspPLAY()
         "RTSP/1.0 200 OK\r\nCSeq: %s\r\n"
         "%s\r\n"
         "Range: npt=0.000-\r\n"
-        "Session: %i\r\n"
+        "Session: %u\r\n"
         "RTP-Info: url=rtsp://127.0.0.1:8554/mjpeg/1/track1\r\n\r\n",
         m_CSeq,
         DateHeader(),
@@ -369,7 +382,7 @@ void CRtspSession::Handle_RtspPLAY()
 
 char const * CRtspSession::DateHeader() 
 {
-    char buf[200];    
+    memset(buf, 0x0, sizeof(buf));
     time_t tt = time(NULL);
     strftime(buf, sizeof buf, "Date: %a, %b %d %Y %H:%M:%S GMT", gmtime(&tt));
     return buf;

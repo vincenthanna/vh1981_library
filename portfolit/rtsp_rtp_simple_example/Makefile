@@ -13,7 +13,7 @@ SUBDIRS += ../../library/basic
 SRCS = CRtspSession.cpp CStreamer.cpp JPEGSamples.cpp RTSPTestServer.cpp
 OBJS = $(SRCS:%.cpp=%.o)
 
-LIBS += -lpthread
+LIBS += -lpthread -ljrtp
 
 all : subdirs
 
@@ -23,6 +23,7 @@ subdirs:
 	done 
 
 LFLAGS_ALL := -L ../../library/basic/
+LFLAGS_ALL += -L ../../library/jrtplib/src/
 
 all : subdirs $(OBJS) $(TARGET)
 

@@ -45,13 +45,14 @@ private:
     void Handle_RtspPLAY();
 
     // global session state parameters
-    int            m_RtspSessionID;
+    unsigned int            m_RtspSessionID;
     SOCKET         m_RtspClient;                              // RTSP socket of that session
     int            m_StreamID;                                // number of simulated stream of that session
     u_short        m_ClientRTPPort;                           // client port for UDP based RTP transport
     u_short        m_ClientRTCPPort;                          // client port for UDP based RTCP transport  
     bool           m_TcpTransport;                            // if Tcp based streaming was activated
     CStreamer    * m_Streamer;                                // the UDP or TCP streamer of that session
+    char buf[200];
 
     // parameters of the last received RTSP request
 
@@ -61,6 +62,9 @@ private:
     char           m_CSeq[RTSP_PARAM_STRING_MAX];             // RTSP command sequence number
     char           m_URLHostPort[RTSP_BUFFER_SIZE];           // host:port part of the URL
     unsigned       m_ContentLength;                           // SDP string size
+
+public:
+    u_short clientRtpPort() { return m_ClientRTPPort; }
 };
 
 #endif

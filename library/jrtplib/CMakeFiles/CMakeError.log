@@ -1,0 +1,240 @@
+Determining if the include file sys/filio.h exists failed with the following output:
+Change Dir: /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec1976350664/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec1976350664.dir/build.make CMakeFiles/cmTryCompileExec1976350664.dir/build
+make[1]: Entering directory `/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec1976350664.dir/CheckIncludeFile.cxx.o
+/usr/bin/c++     -o CMakeFiles/cmTryCompileExec1976350664.dir/CheckIncludeFile.cxx.o -c /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx
+/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx:1:23: fatal error: sys/filio.h: 그런 파일이나 디렉터리가 없습니다
+ #include <sys/filio.h>
+                       ^
+compilation terminated.
+make[1]: Leaving directory `/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp'
+make[1]: *** [CMakeFiles/cmTryCompileExec1976350664.dir/CheckIncludeFile.cxx.o] 오류 1
+make: *** [cmTryCompileExec1976350664/fast] 오류 2
+
+
+Determining if the include file sys/sockio.h exists failed with the following output:
+Change Dir: /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec3521715074/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec3521715074.dir/build.make CMakeFiles/cmTryCompileExec3521715074.dir/build
+make[1]: Entering directory `/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec3521715074.dir/CheckIncludeFile.cxx.o
+/usr/bin/c++     -o CMakeFiles/cmTryCompileExec3521715074.dir/CheckIncludeFile.cxx.o -c /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx
+/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx:1:24: fatal error: sys/sockio.h: 그런 파일이나 디렉터리가 없습니다
+ #include <sys/sockio.h>
+                        ^
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTryCompileExec3521715074.dir/CheckIncludeFile.cxx.o] 오류 1
+make[1]: Leaving directory `/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp'
+make: *** [cmTryCompileExec3521715074/fast] 오류 2
+
+
+Determining if the system is big endian passed with the following output:
+Change Dir: /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec1177141818/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec1177141818.dir/build.make CMakeFiles/cmTryCompileExec1177141818.dir/build
+make[1]: Entering directory `/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1177141818.dir/TestEndianess.c.o
+/usr/bin/cc    -o CMakeFiles/cmTryCompileExec1177141818.dir/TestEndianess.c.o   -c /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/TestEndianess.c
+Linking C executable cmTryCompileExec1177141818
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec1177141818.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec1177141818.dir/TestEndianess.c.o  -o cmTryCompileExec1177141818 -rdynamic 
+make[1]: Leaving directory `/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp'
+
+TestEndianess.c:
+/* A 16 bit integer is required. */
+typedef unsigned short cmakeint16;
+
+/* On a little endian machine, these 16bit ints will give "THIS IS LITTLE ENDIAN."
+   On a big endian machine the characters will be exchanged pairwise. */
+const cmakeint16 info_little[] =  {0x4854, 0x5349, 0x4920, 0x2053, 0x494c, 0x5454, 0x454c, 0x4520, 0x444e, 0x4149, 0x2e4e, 0x0000};
+
+/* on a big endian machine, these 16bit ints will give "THIS IS BIG ENDIAN."
+   On a little endian machine the characters will be exchanged pairwise. */
+const cmakeint16 info_big[] =     {0x5448, 0x4953, 0x2049, 0x5320, 0x4249, 0x4720, 0x454e, 0x4449, 0x414e, 0x2e2e, 0x0000};
+
+#ifdef __CLASSIC_C__
+int main(argc, argv) int argc; char *argv[];
+#else
+int main(int argc, char *argv[])
+#endif
+{
+  int require = 0;
+  require += info_little[argc];
+  require += info_big[argc];
+  (void)argv;
+  return require;
+}
+
+
+Performing C++ SOURCE FILE Test JRTPLIB_SNPRINTF_S failed with the following output:
+Change Dir: /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec3586312165/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec3586312165.dir/build.make CMakeFiles/cmTryCompileExec3586312165.dir/build
+make[1]: Entering directory `/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec3586312165.dir/src.cxx.o
+/usr/bin/c++    -DJRTPLIB_SNPRINTF_S   -o CMakeFiles/cmTryCompileExec3586312165.dir/src.cxx.o -c /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/src.cxx
+/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/src.cxx:1:21: fatal error: windows.h: 그런 파일이나 디렉터리가 없습니다
+ #include <windows.h>
+                     ^
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTryCompileExec3586312165.dir/src.cxx.o] 오류 1
+make[1]: Leaving directory `/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp'
+make: *** [cmTryCompileExec3586312165/fast] 오류 2
+
+Source file was:
+#include <windows.h>
+#include <stdio.h>
+int main(void) { char s[1024]; _snprintf_s(s, 1024,"%d", 10);
+  return 0; }
+Performing C++ SOURCE FILE Test JRTPLIB_SNPRINTF failed with the following output:
+Change Dir: /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec1694056556/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec1694056556.dir/build.make CMakeFiles/cmTryCompileExec1694056556.dir/build
+make[1]: Entering directory `/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec1694056556.dir/src.cxx.o
+/usr/bin/c++    -DJRTPLIB_SNPRINTF   -o CMakeFiles/cmTryCompileExec1694056556.dir/src.cxx.o -c /home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/src.cxx
+/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp/src.cxx:1:21: fatal error: windows.h: 그런 파일이나 디렉터리가 없습니다
+ #include <windows.h>
+                     ^
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTryCompileExec1694056556.dir/src.cxx.o] 오류 1
+make[1]: Leaving directory `/home/vh1981/다운로드/jrtplib-3.11.1/CMakeFiles/CMakeTmp'
+make: *** [cmTryCompileExec1694056556/fast] 오류 2
+
+Source file was:
+#include <windows.h>
+#include <stdio.h>
+int main(void) { char s[1024]; _snprintf(s, 1024,"%d", 10);
+  return 0; }
+Determining if the include file sys/filio.h exists failed with the following output:
+Change Dir: /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTryCompileExec4152201113/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec4152201113.dir/build.make CMakeFiles/cmTryCompileExec4152201113.dir/build
+make[1]: Entering directory `/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec4152201113.dir/CheckIncludeFile.cxx.o
+/usr/bin/c++     -o CMakeFiles/cmTryCompileExec4152201113.dir/CheckIncludeFile.cxx.o -c /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx
+/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx:1:23: fatal error: sys/filio.h: 그런 파일이나 디렉터리가 없습니다
+ #include <sys/filio.h>
+                       ^
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTryCompileExec4152201113.dir/CheckIncludeFile.cxx.o] 오류 1
+make[1]: Leaving directory `/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp'
+make: *** [cmTryCompileExec4152201113/fast] 오류 2
+
+
+Determining if the include file sys/sockio.h exists failed with the following output:
+Change Dir: /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTryCompileExec1609482704/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec1609482704.dir/build.make CMakeFiles/cmTryCompileExec1609482704.dir/build
+make[1]: Entering directory `/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec1609482704.dir/CheckIncludeFile.cxx.o
+/usr/bin/c++     -o CMakeFiles/cmTryCompileExec1609482704.dir/CheckIncludeFile.cxx.o -c /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx
+/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx:1:24: fatal error: sys/sockio.h: 그런 파일이나 디렉터리가 없습니다
+ #include <sys/sockio.h>
+                        ^
+compilation terminated.
+make[1]: Leaving directory `/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp'
+make[1]: *** [CMakeFiles/cmTryCompileExec1609482704.dir/CheckIncludeFile.cxx.o] 오류 1
+make: *** [cmTryCompileExec1609482704/fast] 오류 2
+
+
+Determining if the system is big endian passed with the following output:
+Change Dir: /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTryCompileExec674406562/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec674406562.dir/build.make CMakeFiles/cmTryCompileExec674406562.dir/build
+make[1]: Entering directory `/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec674406562.dir/TestEndianess.c.o
+/usr/bin/cc    -o CMakeFiles/cmTryCompileExec674406562.dir/TestEndianess.c.o   -c /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/TestEndianess.c
+Linking C executable cmTryCompileExec674406562
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec674406562.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec674406562.dir/TestEndianess.c.o  -o cmTryCompileExec674406562 -rdynamic 
+make[1]: Leaving directory `/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp'
+
+TestEndianess.c:
+/* A 16 bit integer is required. */
+typedef unsigned short cmakeint16;
+
+/* On a little endian machine, these 16bit ints will give "THIS IS LITTLE ENDIAN."
+   On a big endian machine the characters will be exchanged pairwise. */
+const cmakeint16 info_little[] =  {0x4854, 0x5349, 0x4920, 0x2053, 0x494c, 0x5454, 0x454c, 0x4520, 0x444e, 0x4149, 0x2e4e, 0x0000};
+
+/* on a big endian machine, these 16bit ints will give "THIS IS BIG ENDIAN."
+   On a little endian machine the characters will be exchanged pairwise. */
+const cmakeint16 info_big[] =     {0x5448, 0x4953, 0x2049, 0x5320, 0x4249, 0x4720, 0x454e, 0x4449, 0x414e, 0x2e2e, 0x0000};
+
+#ifdef __CLASSIC_C__
+int main(argc, argv) int argc; char *argv[];
+#else
+int main(int argc, char *argv[])
+#endif
+{
+  int require = 0;
+  require += info_little[argc];
+  require += info_big[argc];
+  (void)argv;
+  return require;
+}
+
+
+Performing C++ SOURCE FILE Test JRTPLIB_SNPRINTF_S failed with the following output:
+Change Dir: /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTryCompileExec2401172202/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec2401172202.dir/build.make CMakeFiles/cmTryCompileExec2401172202.dir/build
+make[1]: Entering directory `/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec2401172202.dir/src.cxx.o
+/usr/bin/c++    -DJRTPLIB_SNPRINTF_S   -o CMakeFiles/cmTryCompileExec2401172202.dir/src.cxx.o -c /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/src.cxx
+/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/src.cxx:1:21: fatal error: windows.h: 그런 파일이나 디렉터리가 없습니다
+ #include <windows.h>
+                     ^
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTryCompileExec2401172202.dir/src.cxx.o] 오류 1
+make[1]: Leaving directory `/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp'
+make: *** [cmTryCompileExec2401172202/fast] 오류 2
+
+Source file was:
+#include <windows.h>
+#include <stdio.h>
+int main(void) { char s[1024]; _snprintf_s(s, 1024,"%d", 10);
+  return 0; }
+Performing C++ SOURCE FILE Test JRTPLIB_SNPRINTF failed with the following output:
+Change Dir: /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTryCompileExec3183161229/fast"
+/usr/bin/make -f CMakeFiles/cmTryCompileExec3183161229.dir/build.make CMakeFiles/cmTryCompileExec3183161229.dir/build
+make[1]: Entering directory `/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building CXX object CMakeFiles/cmTryCompileExec3183161229.dir/src.cxx.o
+/usr/bin/c++    -DJRTPLIB_SNPRINTF   -o CMakeFiles/cmTryCompileExec3183161229.dir/src.cxx.o -c /snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/src.cxx
+/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp/src.cxx:1:21: fatal error: windows.h: 그런 파일이나 디렉터리가 없습니다
+ #include <windows.h>
+                     ^
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTryCompileExec3183161229.dir/src.cxx.o] 오류 1
+make[1]: Leaving directory `/snoopy/home/vincenthanna/workspace/git/vh1981_library/library/jrtplib/CMakeFiles/CMakeTmp'
+make: *** [cmTryCompileExec3183161229/fast] 오류 2
+
+Source file was:
+#include <windows.h>
+#include <stdio.h>
+int main(void) { char s[1024]; _snprintf(s, 1024,"%d", 10);
+  return 0; }
