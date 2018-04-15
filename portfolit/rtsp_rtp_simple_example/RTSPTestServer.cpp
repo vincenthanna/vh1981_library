@@ -69,7 +69,6 @@ void* SessionThreadHandler(void* lpParam)
     tv.tv_sec = 1;
     tv.tv_usec = 0;
     while (!Stop) {
-        printf("[%s]%d\n", __FUNCTION__,__LINE__);
         fd_set tmpSet = readsets;
         int state = select(Client + 1, &tmpSet, NULL, NULL, &tv);
         if (state > -1) {
@@ -83,7 +82,7 @@ void* SessionThreadHandler(void* lpParam)
             Stop = true;
         }
 
-        EXCLOG(LOG_INFO, "RecvBuf : %s", RecvBuf);
+        EXCLOG(LOG_INFO, "RecvBuf :\n%s\n=====================================", RecvBuf);
         // we filter away everything which seems not to be an RTSP command: O-ption, D-escribe, S-etup, P-lay, T-eardown
         if ((RecvBuf[0] == 'O') || (RecvBuf[0] == 'D') || (RecvBuf[0] == 'S') || (RecvBuf[0] == 'P') || (RecvBuf[0] == 'T'))
         {
@@ -182,7 +181,6 @@ void* SessionThreadHandler_JRTP(void* lpParam)
     tv.tv_sec = 1;
     tv.tv_usec = 0;
     while (!Stop) {
-        printf("[%s]%d\n", __FUNCTION__,__LINE__);
         fd_set tmpSet = readsets;
         int state = select(Client + 1, &tmpSet, NULL, NULL, &tv);
         if (state > -1) {
@@ -196,7 +194,7 @@ void* SessionThreadHandler_JRTP(void* lpParam)
             Stop = true;
         }
 
-        EXCLOG(LOG_INFO, "RecvBuf : \n%s", RecvBuf);
+        EXCLOG(LOG_INFO, "RecvBuf : \n%s\n<<<<<< end >>>>>>", RecvBuf);
         // we filter away everything which seems not to be an RTSP command: O-ption, D-escribe, S-etup, P-lay, T-eardown
         if ((RecvBuf[0] == 'O') || (RecvBuf[0] == 'D') || (RecvBuf[0] == 'S') || (RecvBuf[0] == 'P') || (RecvBuf[0] == 'T'))
         {

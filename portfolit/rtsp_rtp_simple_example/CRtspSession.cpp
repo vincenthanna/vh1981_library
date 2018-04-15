@@ -114,6 +114,8 @@ bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize
     if (strstr(CmdName,"PLAY")      != nullptr) m_RtspCmdType = RTSP_PLAY;     else
     if (strstr(CmdName,"TEARDOWN")  != nullptr) m_RtspCmdType = RTSP_TEARDOWN;
 
+    EXCLOG(LOG_INFO, "m_RtspCmdType=%d", m_RtspCmdType);
+
     // check whether the request contains transport information (UDP or TCP)
     if (m_RtspCmdType == RTSP_SETUP)
     {
@@ -161,13 +163,17 @@ bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize
             while (--k >= i && CurRequest[k] == ' ') {}
             unsigned k1 = k;
             while (k1 > i && CurRequest[k1] != '/') --k1;
-            if (k - k1 + 1 > sizeof(m_URLSuffix)) return false;
+            if (k - k1 + 1 > sizeof(m_URLSuffix)) {
+            	return false;
+            }
             unsigned n = 0, k2 = k1+1;
 
             while (k2 <= k) m_URLSuffix[n++] = CurRequest[k2++];
             m_URLSuffix[n] = '\0';
 
-            if (k1 - i > sizeof(m_URLPreSuffix)) return false;
+            if (k1 - i > sizeof(m_URLPreSuffix)) {
+            	return false;
+            }
             n = 0; k2 = i + 1;
             while (k2 <= k1 - 1) m_URLPreSuffix[n++] = CurRequest[k2++];
             m_URLPreSuffix[n] = '\0';
@@ -234,9 +240,6 @@ bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize
 
 RTSP_CMD_TYPES CRtspSession::Handle_RtspRequest(char const * aRequest, unsigned aRequestSize)
 {
-    if(!ParseRtspRequest(aRequest,aRequestSize)) {
-        printf("ParseRtspRequest() failed!\n");
-    }
     if (ParseRtspRequest(aRequest,aRequestSize)) {
         EXCLOG(LOG_INFO, "m_RtspCmdType=%d", m_RtspCmdType);
         switch (m_RtspCmdType) {
