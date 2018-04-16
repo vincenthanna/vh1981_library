@@ -17,7 +17,7 @@ namespace vh1981lib {
             red_black,
             grey_black,
             green_yellow,
-            purple_green
+            red_gray
         };
 
     public:
@@ -99,7 +99,7 @@ namespace vh1981lib {
         #define LOG_INFO exlogops(_PARMS_, exlogops::red_black)
         #define LOG_WARN exlogops(_PARMS_, exlogops::grey_black)
         #define LOG_ERROR exlogops(_PARMS_, exlogops::green_yellow)
-        #define LOG_FATAL exlogops(_PARMS_, exlogops::purple_green)
+        #define LOG_FATAL exlogops(_PARMS_, exlogops::red_gray)
 
         #define EXCLOG(option, format, ...)\
             do { \

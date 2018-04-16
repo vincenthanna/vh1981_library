@@ -50,6 +50,11 @@ void CRtspSession::Init()
 
 bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize)
 {
+
+    exstring inputStr(aRequest);
+
+
+#if 0
     char     CmdName[RTSP_PARAM_STRING_MAX];
     char     CurRequest[RTSP_BUFFER_SIZE];
     unsigned CurRequestSize; 
@@ -178,6 +183,7 @@ bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize
             while (k2 <= k1 - 1) m_URLPreSuffix[n++] = CurRequest[k2++];
             m_URLPreSuffix[n] = '\0';
             i = k + 7; 
+            EXCLOG(LOG_INFO, "m_URLPreSuffix=%s", m_URLPreSuffix);
             parseSucceeded = true;
             break;
         }
@@ -236,6 +242,8 @@ bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize
         }
     }
     return true;
+#endif
+
 };
 
 RTSP_CMD_TYPES CRtspSession::Handle_RtspRequest(char const * aRequest, unsigned aRequestSize)
@@ -342,15 +350,18 @@ void CRtspSession::Handle_RtspSETUP()
     m_Streamer->InitTransport(m_ClientRTPPort,m_ClientRTCPPort,m_TcpTransport);
 
     // simulate SETUP server response
-    if (m_TcpTransport)
+    if (m_TcpTransport) {
         snprintf(Transport,sizeof(Transport),"RTP/AVP/TCP;unicast;interleaved=0-1");
-    else
+    }
+    else {
         snprintf(Transport,sizeof(Transport),
-            "RTP/AVP;unicast;destination=127.0.0.1;source=127.0.0.1;client_port=%i-%i;server_port=%i-%i",
-            m_ClientRTPPort,
-            m_ClientRTCPPort,
-            m_Streamer->GetRtpServerPort(),
-            m_Streamer->GetRtcpServerPort());
+                "RTP/AVP;unicast;destination=127.0.0.1;source=127.0.0.1;client_port=%i-%i;server_port=%i-%i",
+                m_ClientRTPPort,
+                m_ClientRTCPPort,
+                m_Streamer->GetRtpServerPort(),
+                m_Streamer->GetRtcpServerPort());
+    }
+
     snprintf(Response,sizeof(Response),
         "RTSP/1.0 200 OK\r\nCSeq: %s\r\n"
         "%s\r\n"
@@ -375,11 +386,11 @@ void CRtspSession::Handle_RtspPLAY()
         "%s\r\n"
         "Range: npt=0.000-\r\n"
         "Session: %u\r\n"
-        "RTP-Info: url=rtsp://127.0.0.1:8554/mjpeg/1/track1\r\n\r\n",
+        "RTP-Info: url=rtsp://127.0.0.1:8554/mjpeg/1/\r\n\r\n",
         m_CSeq,
         DateHeader(),
         m_RtspSessionID);
-
+    EXCLOG(LOG_INFO, "Response:\n%s", Response);
     send(m_RtspClient,Response,strlen(Response),0);
 }
 

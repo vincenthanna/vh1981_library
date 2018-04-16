@@ -722,6 +722,8 @@ int main()
     while (true)  
     {   // loop forever to accept client connections
         ClientSocket = accept(MasterSocket,(struct sockaddr*)&ClientAddr,&ClientAddrLen);
+        const char* addr = inet_ntoa(ClientAddr.sin_addr);
+        EXCLOG(LOG_INFO, "accepted address : %s", addr);
         //CreateThread(NULL,0,SessionThreadHandler,&ClientSocket,0,&TID);
         pthread_t handle;
         size_t status;

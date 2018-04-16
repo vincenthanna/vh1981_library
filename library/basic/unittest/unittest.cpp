@@ -55,6 +55,14 @@ TEST(exstring_test, log)
     {
         EXCLOG(LOG_WARN, exstring("Hello World"));
         EXCLOG(LOG_WARN, "%s %s", "Hello", "World");
+        EXCLOG(LOG_WARN, "");
+
+        EXCLOG(LOG_DEBUG, "LOG_DEBUG");
+        EXCLOG(LOG_INFO, "LOG_INFO");
+        EXCLOG(LOG_WARN, "LOG_WARN");
+        EXCLOG(LOG_ERROR, "LOG_ERROR");
+        EXCLOG(LOG_FATAL, "LOG_FATAL");
+
     }
 }
 

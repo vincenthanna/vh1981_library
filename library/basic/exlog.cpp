@@ -2,6 +2,8 @@
 #include "exlog.h"
 
 #include <stdio.h>
+#include <string.h>
+#include <iomanip>
 
 using namespace std;
 
@@ -14,33 +16,45 @@ namespace vh1981lib {
         string s = format_arg_list(format.to_string().c_str(), args);
         cout.imbue(std::locale(""));
 
-        bool clearStyle = (exlogops::ansi_default != ops.color());
+        time_t t = time(0);   // get time now
+        tm* now = localtime(&t);
+        exstring tmp;
+        tmp.format("%02d:%02d:%02d : ", now->tm_hour, now->tm_min, now->tm_sec);
+        cout <<std::setw(18) << tmp;
 
-        if (exlogops::ansi_default == ops.color()) {
-            cout << "\x1B[41m\x1B[1;34m";
+        bool clearStyle = exlogops::ansi_default == ops.color() ? false : true;
+
+        exstring str;
+        if (exlogops::red_black == ops.color()) {
+            str += "\x1B[47m\x1B[1;30m";
         }
         else if (exlogops::red_black == ops.color()) {
-            cout << "\x1B[47m\x1B[1;30m";
+            str += "\x1B[47m\x1B[1;30m";
         }
         else if (exlogops::grey_black == ops.color()) {
-            cout << "\x1B[42m\x1B[1;33m";
+            str += "\x1B[42m\x1B[1;33m";
         }
         else if (exlogops::green_yellow == ops.color()) {
-            cout << "\x1B[45m\x1B[1;35m";
+            str += "\x1B[45m\x1B[1;37m";
         }
-        else if (exlogops::purple_green == ops.color()) {
-            cout << "\x1B[47m\x1B[1;31m";
+        else if (exlogops::red_gray == ops.color()) {
+            str += "\x1B[41m\x1B[1;37m";
         }
 
-        cout << "<";
-        cout << ops.name() << ":" << ops.funcName() << ":" << ops.line();
-        cout << ">";
+        str += "<";
+        exstring infostr;
+        infostr.format("%s:%s:%d",\
+            ops.name().to_string().c_str(), ops.funcName().to_string().c_str(), ops.line());
+        str += infostr;
+        str += ">";
 
         if (clearStyle) { // clear ANSI Colors
-            cout << "\x1B[0m";
+            str += "\x1B[0m";
         }
 
-        cout << " " << s << std::endl;
+        //cout << " " << s << std::endl;
+        cout << str;
+        cout << " " << s << endl;
     }
 
     void exvlog(const exstring& name, const exstring& format, va_list args)

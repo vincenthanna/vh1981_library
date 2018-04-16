@@ -35,7 +35,9 @@ public:
 
 private:
     void Init();
+public:
     bool ParseRtspRequest(char const * aRequest, unsigned aRequestSize);
+private:
     char const * DateHeader();
 
     // RTSP request command handlers
@@ -52,6 +54,7 @@ private:
     u_short        m_ClientRTCPPort;                          // client port for UDP based RTCP transport  
     bool           m_TcpTransport;                            // if Tcp based streaming was activated
     CStreamer    * m_Streamer;                                // the UDP or TCP streamer of that session
+    uint32_t       m_ipAddr;                                  // ip address(host order)
     char buf[200];
 
     // parameters of the last received RTSP request
