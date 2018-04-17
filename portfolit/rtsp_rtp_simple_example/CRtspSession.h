@@ -6,20 +6,11 @@
 #ifndef _CRtsp_Session_H
 #define _CRtsp_Session_H
 
+#include "RtspTypes.h"
+
 //#include <Winsock2.h>
 //#include <windows.h>
 #include "CStreamer.h"
-
-// supported command types
-enum RTSP_CMD_TYPES
-{
-    RTSP_OPTIONS,
-    RTSP_DESCRIBE,
-    RTSP_SETUP,
-    RTSP_PLAY,
-    RTSP_TEARDOWN,
-    RTSP_UNKNOWN
-};
 
 #define RTSP_BUFFER_SIZE       10000    // for incoming requests, and outgoing responses
 #define RTSP_PARAM_STRING_MAX  500
