@@ -422,7 +422,7 @@ int main()
 
 
     // bind our master socket to the RTSP port and listen for a client connection
-    if (bind(MasterSocket,(sockaddr*)&ServerAddr,sizeof(ServerAddr)) != 0) return 0;
+    if (::bind(MasterSocket,(sockaddr*)&ServerAddr,sizeof(ServerAddr)) != 0) return 0;
     if (listen(MasterSocket,5) != 0) return 0;
 
 

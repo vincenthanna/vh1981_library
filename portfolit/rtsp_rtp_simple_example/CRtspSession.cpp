@@ -14,6 +14,9 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include <iostream>
+#include <sstream>
+
 #include "library/basic/exlog.h"
 
 #include "JPEGSamples.h"
@@ -51,7 +54,34 @@ void CRtspSession::Init()
 bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize)
 {
 
-    exstring inputStr(aRequest);
+//    exstring inputStr(aRequest);
+    //EXCLOG(LOG_INFO, "%s", inputStr.to_string().c_str());
+    std::istringstream f(aRequest);
+    string line;
+    int lineNum = 0;
+
+    //line 0
+    getline(f, line);
+    stringstream stream(line);
+
+    string cmd;
+    stream >> cmd;
+    if (cmd.compare(0, 8, "DESCRIBE") == 0) {
+    	EXCLOG(LOG_INFO, "DESCRIBE command");
+    }
+
+
+    string url;
+
+
+    int k;
+    stream >> cmd;
+    stream >> url;
+
+    EXCLOG(LOG_INFO, "cmd : %s", cmd.c_str());
+    EXCLOG(LOG_INFO, "url : %s", url.c_str());
+
+
 
 
 #if 0

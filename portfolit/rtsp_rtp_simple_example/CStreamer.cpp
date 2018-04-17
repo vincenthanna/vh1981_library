@@ -134,11 +134,11 @@ void CStreamer::InitTransport(u_short aRtpPort, u_short aRtcpPort, bool TCP)
         {
             m_RtpSocket     = socket(AF_INET, SOCK_DGRAM, 0);                     
             Server.sin_port = htons(P);
-            if (bind(m_RtpSocket,(sockaddr*)&Server,sizeof(Server)) == 0)
+            if (::bind(m_RtpSocket,(sockaddr*)&Server,sizeof(Server)) == 0)
             {   // Rtp socket was bound successfully. Lets try to bind the consecutive Rtsp socket
                 m_RtcpSocket = socket(AF_INET, SOCK_DGRAM, 0);
                 Server.sin_port = htons(P + 1);
-                if (bind(m_RtcpSocket,(sockaddr*)&Server,sizeof(Server)) == 0) 
+                if (::bind(m_RtcpSocket,(sockaddr*)&Server,sizeof(Server)) == 0) 
                 {
                     m_RtpServerPort  = P;
                     m_RtcpServerPort = P+1;
