@@ -10,12 +10,12 @@ LIBS = -lvh1981_basic
 
 SUBDIRS += ../../library/basic
 
-SRCS_SUB = CRtspSession.cpp CStreamer.cpp JPEGSamples.cpp
+SRCS_SUB = CRtspSession.cpp CStreamer.cpp JPEGSamples.cpp RtspParser.cpp RtspTypes.cpp
 SRCS = $(SRCS_SUB) RTSPTestServer.cpp
 OBJS_SUB = $(SRCS_SUB:%.cpp=%.o)
 OBJS = $(SRCS:%.cpp=%.o)
 
-LIBS += -lpthread -ljrtp
+LIBS += -lpthread -ljrtp -lboost_regex
 
 all : subdirs
 
@@ -36,6 +36,6 @@ unittest : unittest.o $(SRCS_SUB)
 	$(CXX) $(TRACE_FLAGS) $(CXXFLAGS) -o unittest $(SRCS_SUB) unittest.o $(LFLAGS_ALL) $(LIBS) -lgtest -lpthread -I /usr/local/include 
 	
 clean::
-	rm -rf $(TARGET) $(OBJS) unittest
+	rm -rf $(TARGET) $(OBJS) unittest unittest.o
 
 .PHONY: clean
