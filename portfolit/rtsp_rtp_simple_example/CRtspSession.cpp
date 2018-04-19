@@ -17,6 +17,12 @@
 
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <algorithm>
+
+#include <boost/regex.hpp>
+#include <boost/foreach.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "library/basic/exlog.h"
 
@@ -41,7 +47,7 @@ CRtspSession::CRtspSession(SOCKET aRtspClient, CStreamer * aStreamer):m_RtspClie
 
 CRtspSession::~CRtspSession()
 {
-};
+}
 
 void CRtspSession::Init()
 {
@@ -53,35 +59,160 @@ void CRtspSession::Init()
     m_ContentLength  =  0;
 };
 
+RTSP_CMD_TYPES CRtspSession::getDirective(const exstring& line)
+{
+    //EXCLOG(LOG_INFO, "%s", line.to_string().c_str());
+    for (auto directive : rtspDirectives) {
+        //EXCLOG(LOG_INFO, "%s %d", directive.name.c_str(), directive.name.length());
+        if (directive.name.compare(0, directive.name.length(), \
+            line.to_string(), 0, directive.name.length()) == 0) {
+            return (RTSP_CMD_TYPES)directive.cmdType;
+        }
+    }
+    return RTSP_UNKNOWN;
+}
+
 bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize)
 {
     std::istringstream f(aRequest);
     string line;
-    int lineNum = 0;
+    int linenum = 0;
 
-    //line 0
-    getline(f, line);
-    RtspParser parser;
-    auto directive = parser.getDirective(exstring(line));
+    RTSP_CMD_TYPES type = getDirective(exstring(aRequest));
 
-//    stringstream stream(line);
+    EXCLOG(LOG_INFO, "RTSP_CMD_TYPES : %d", type);
+    while(getline(f, line)) {
+    	string url;
 
-//    string cmd;
-//    stream >> cmd;
-//    if (cmd.compare(0, 8, "DESCRIBE") == 0) {
-//    	EXCLOG(LOG_INFO, "DESCRIBE command");
-//    }
-//
-//    string url;
-//
-//
-//    int k;
-//    stream >> cmd;
-//    stream >> url;
-//
-//    EXCLOG(LOG_INFO, "cmd : %s", cmd.c_str());
-//    EXCLOG(LOG_INFO, "url : %s", url.c_str());
+    	if (linenum == 0) {
+    		stringstream stream(line);
+    		string token;
+    		stream >> token; // skip directive
+    		stream >> url;
 
+    		boost::regex regexPort(":([0-9]+)");
+    		boost::smatch what;
+    		string port;
+    		if (boost::regex_search(url, what, regexPort)) {
+    			string match(what[1].first, what[1].second);
+    			port = match;
+    			_hostPort = std::stoi(port, nullptr, 10);
+    			EXCLOG(LOG_INFO, "_hostPort=%d", _hostPort);
+    		}
+    		else {
+    			EXCLOG(LOG_ERROR, "can't get port number!!!");
+    		}
+
+    		size_t startpos = url.find_first_of('/', 8);
+    		string path;
+    		if (startpos != string::npos) {
+    			startpos += 1;
+    			string match(url.begin() + startpos, url.end());
+    			_path = match;
+    			EXCLOG(LOG_INFO, "_path=%s", _path.to_string().c_str());
+    		}
+    		else {
+    			EXCLOG(LOG_ERROR, "can't get port path!!!");
+    		}
+    	}
+    	else {
+    		size_t startpos = string::npos;
+    		if ((startpos = line.find(string("CSeq"))) != string::npos) {
+    			//EXCLOG(LOG_INFO, "line=%s startpos=%d", line.c_str(), startpos);
+    			boost::regex regexPort("([0-9]+)");
+    			boost::smatch what;
+    			string cseq;
+    			if (boost::regex_search(line, what, regexPort)) {
+    				string match(what[1].first, what[1].second);
+    				_cseq = match;
+    				EXCLOG(LOG_INFO, "cseq=%s", _cseq.to_string().c_str());
+    			}
+    			else {
+    				EXCLOG(LOG_ERROR, "can't get cseq!!!");
+    			}
+    		}
+    		else if ((startpos = line.find(string("Accept"))) != string::npos) {
+    			string tmpstr = line;
+    			string tmp2 = "Accept";
+    			tmpstr.erase(tmpstr.find(tmp2), tmp2.length());
+    			string chars = ":";
+    			tmpstr = exstring::remove_chars(tmpstr, chars);
+    			boost::trim_right(tmpstr);
+    			boost::trim_left(tmpstr);
+    			EXCLOG(LOG_INFO, "%s:%s",tmp2.c_str(), tmpstr.c_str());
+    		}
+    		else if ((startpos = line.find(string("User-Agent"))) != string::npos) {
+    			string tmpstr = line;
+    			string tmp2 = "User-Agent";
+    			tmpstr.erase(tmpstr.find(tmp2), tmp2.length());
+    			string chars = ":";
+    			tmpstr = exstring::remove_chars(tmpstr, chars);
+    			boost::trim_right(tmpstr);
+    			boost::trim_left(tmpstr);
+    			EXCLOG(LOG_INFO, "%s:%s",tmp2.c_str(), tmpstr.c_str());
+    		}
+    		else if ((startpos = line.find(string("client_port"))) != string::npos) {
+    			string tmpstr = line;
+    			string tmp2 = "client_port";
+    			tmpstr.erase(0, startpos + tmp2.length());
+
+    			boost::regex regexNumber("([0-9]+)");
+    			boost::smatch what;
+    			//EXCLOG(LOG_INFO, "tmpstr=%s", tmpstr.c_str());
+    			boost::regex_search(tmpstr, what, regexNumber);
+    			for (int i = 1; i < what.size(); i++) {
+    				string match(what[i].first, what[i].second);
+    				boost::trim_left(match);
+    				boost::trim_right(match);
+    				if (match.length()) {
+    					m_ClientRTPPort = std::stoi(match, nullptr, 10);
+    					m_ClientRTCPPort = m_ClientRTPPort + 1;
+    					EXCLOG(LOG_INFO, "_clientPort: m_ClientRTPPort=%d m_ClientRTCPPort=%d", \
+    							m_ClientRTPPort, m_ClientRTCPPort);
+    				}
+    				else {
+    					EXCLOG(LOG_ERROR, "client_port scan failed!");
+    				}
+    			}
+    		}
+    		else if ((startpos = line.find(string("Session"))) != string::npos) {
+    			string tmpstr = line;
+    			string tmp2 = "Session";
+    			tmpstr.erase(tmpstr.find(tmp2), tmp2.length());
+    			string chars = ":";
+    			tmpstr = exstring::remove_chars(tmpstr, chars);
+    			boost::trim_right(tmpstr);
+    			boost::trim_left(tmpstr);
+    			if (tmpstr.length()) {
+    				_session = stoi(tmpstr, nullptr, 10);
+    				EXCLOG(LOG_INFO, "%s:%d",tmp2.c_str(), _session);
+    			}
+    			else {
+    				EXCLOG(LOG_ERROR, "can't read %s element!!!", tmp2.c_str());
+    			}
+
+    		}
+    		else if ((startpos = line.find(string("Range"))) != string::npos) {
+    			string tmpstr = line;
+    			string tmp2 = "Range";
+    			tmpstr.erase(tmpstr.find(tmp2), tmp2.length());
+    			string chars = ":";
+    			tmpstr = exstring::remove_chars(tmpstr, chars);
+    			boost::trim_right(tmpstr);
+    			boost::trim_left(tmpstr);
+    			if (tmpstr.length()) {
+    				_range = tmpstr;
+    				EXCLOG(LOG_INFO, "%s:%s",tmp2.c_str(), _range.to_string().c_str());
+    			}
+    			else {
+    				EXCLOG(LOG_ERROR, "can't read %s element!!!", tmp2.c_str());
+    			}
+    		}
+    	}
+
+    	linenum++;
+    }
+    EXCLOG(LOG_INFO, "<<<end>>>");
 
 
 

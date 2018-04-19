@@ -96,10 +96,18 @@ TEST(RtspParser_test, ctor)
 //    }
 #endif
 
-    RtspParser parser;
-    parser.parse(exstring(sample_text_OPTIONS));
+//    RtspParser parser;
+//    parser.parse(exstring(sample_text_OPTIONS));
+//    parser.parse(exstring(sample_text_SETUP));
+//    parser.parse(exstring(sample_text_DESCRIBE));
+//    parser.parse(exstring(sample_text_PLAY));
 
-    parser.parse(exstring(sample_text_SETUP));
+    CRtspSession session(0, nullptr);
+    session.ParseRtspRequest(sample_text_OPTIONS, strlen(sample_text_OPTIONS));
+    session.ParseRtspRequest(sample_text_SETUP, strlen(sample_text_SETUP));
+    session.ParseRtspRequest(sample_text_DESCRIBE, strlen(sample_text_DESCRIBE));
+    session.ParseRtspRequest(sample_text_PLAY, strlen(sample_text_PLAY));
+
 
 #if 0
     {

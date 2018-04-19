@@ -94,3 +94,4 @@ exstring::exstring(const std::string &s) {
 exstring::exstring(const char *cs) {
     _string = string(cs);
 }
+

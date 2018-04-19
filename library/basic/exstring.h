@@ -122,6 +122,21 @@ namespace vh1981lib {
 
     public:
         virtual size_t hash() const { return std::hash<std::string>()(_string); }
+
+    /**
+     @name 멤버 함수로 포함하기 전단계의 utility 함수
+     */
+    //@{
+    public:
+        static std::string& remove_chars(std::string& s, const std::string& chars)
+        {
+        	s.erase(remove_if(s.begin(), s.end(), [&chars](const char& c) {
+        		return chars.find(c) != std::string::npos;
+        	}), s.end());
+        	return s;
+        }
+    //@}
+
     };
 
 } // namespace vh1981lib

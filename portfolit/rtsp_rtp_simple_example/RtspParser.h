@@ -22,6 +22,7 @@ public:
     bool parse(const exstring& input);
 
 private:
+    bool parseCommonValues(const exstring& input);
     bool parse_OPTIONS(const exstring& input);
     bool parse_DESCRIBE(const exstring& input);
     bool parse_SETUP(const exstring& input);
@@ -31,9 +32,11 @@ private:
 public:
     exstring _source;
     exstring _path;
+    exstring _range;
     RTSP_CMD_TYPES _type;
     ushort _hostPort;
     ushort _clientPort;
+    unsigned int _session;
     exstring _cseq;
 
 };

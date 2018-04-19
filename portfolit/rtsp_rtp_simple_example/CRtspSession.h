@@ -11,9 +11,13 @@
 //#include <Winsock2.h>
 //#include <windows.h>
 #include "CStreamer.h"
+#include "library/basic/exstring.h"
 
 #define RTSP_BUFFER_SIZE       10000    // for incoming requests, and outgoing responses
 #define RTSP_PARAM_STRING_MAX  500
+
+
+using namespace std;
 
 class CRtspSession
 {
@@ -27,6 +31,7 @@ public:
 private:
     void Init();
 public:
+    RTSP_CMD_TYPES getDirective(const vh1981lib::exstring& line);
     bool ParseRtspRequest(char const * aRequest, unsigned aRequestSize);
 private:
     char const * DateHeader();
@@ -56,6 +61,16 @@ private:
     char           m_CSeq[RTSP_PARAM_STRING_MAX];             // RTSP command sequence number
     char           m_URLHostPort[RTSP_BUFFER_SIZE];           // host:port part of the URL
     unsigned       m_ContentLength;                           // SDP string size
+
+public:
+    vh1981lib::exstring _source;
+    vh1981lib::exstring _path;
+    vh1981lib::exstring _range;
+    RTSP_CMD_TYPES _type;
+    ushort _hostPort;
+    ushort _clientPort;
+    unsigned int _session;
+    vh1981lib::exstring _cseq;
 
 public:
     u_short clientRtpPort() { return m_ClientRTPPort; }
