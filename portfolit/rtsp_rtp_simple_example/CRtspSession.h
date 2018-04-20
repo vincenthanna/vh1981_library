@@ -42,6 +42,12 @@ private:
     void Handle_RtspSETUP(); 
     void Handle_RtspPLAY();
 
+    // RTSP send response
+    void sendResponse(char* data, size_t len);
+
+    // Utility function FIXME: 위치를 나중에 정리할것
+    vh1981lib::exstring directiveString(RTSP_CMD_TYPES type);
+
     // global session state parameters
     unsigned int            m_RtspSessionID;
     SOCKET         m_RtspClient;                              // RTSP socket of that session
@@ -56,10 +62,10 @@ private:
     // parameters of the last received RTSP request
 
     RTSP_CMD_TYPES m_RtspCmdType;                             // command type (if any) of the current request
-    char           m_URLPreSuffix[RTSP_PARAM_STRING_MAX];     // stream name pre suffix 
-    char           m_URLSuffix[RTSP_PARAM_STRING_MAX];        // stream name suffix
-    char           m_CSeq[RTSP_PARAM_STRING_MAX];             // RTSP command sequence number
-    char           m_URLHostPort[RTSP_BUFFER_SIZE];           // host:port part of the URL
+    //char           m_URLPreSuffix[RTSP_PARAM_STRING_MAX];     // stream name pre suffix
+    //char           m_URLSuffix[RTSP_PARAM_STRING_MAX];        // stream name suffix
+    //char           m_CSeq[RTSP_PARAM_STRING_MAX];             // RTSP command sequence number
+    //char           m_URLHostPort[RTSP_BUFFER_SIZE];           // host:port part of the URL
     unsigned       m_ContentLength;                           // SDP string size
 
 public:
@@ -70,7 +76,8 @@ public:
     ushort _hostPort;
     ushort _clientPort;
     unsigned int _session;
-    vh1981lib::exstring _cseq;
+    unsigned int _contentLength;
+    size_t _cseq;
 
 public:
     u_short clientRtpPort() { return m_ClientRTPPort; }

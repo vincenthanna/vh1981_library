@@ -52,10 +52,10 @@ CRtspSession::~CRtspSession()
 void CRtspSession::Init()
 {
     m_RtspCmdType   = RTSP_UNKNOWN;
-    memset(m_URLPreSuffix, 0x00, sizeof(m_URLPreSuffix));
-    memset(m_URLSuffix,    0x00, sizeof(m_URLSuffix));
-    memset(m_CSeq,         0x00, sizeof(m_CSeq));
-    memset(m_URLHostPort,  0x00, sizeof(m_URLHostPort));
+    //memset(m_URLPreSuffix, 0x00, sizeof(m_URLPreSuffix));
+    //memset(m_URLSuffix,    0x00, sizeof(m_URLSuffix));
+    //memset(m_CSeq,         0x00, sizeof(m_CSeq));
+    //memset(m_URLHostPort,  0x00, sizeof(m_URLHostPort));
     m_ContentLength  =  0;
 };
 
@@ -78,9 +78,9 @@ bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize
     string line;
     int linenum = 0;
 
-    RTSP_CMD_TYPES type = getDirective(exstring(aRequest));
+    m_RtspCmdType = getDirective(exstring(aRequest));
 
-    EXCLOG(LOG_INFO, "RTSP_CMD_TYPES : %d", type);
+    EXCLOG(LOG_INFO, "RTSP_CMD_TYPES : %d", m_RtspCmdType);
     while(getline(f, line)) {
     	string url;
 
@@ -124,8 +124,15 @@ bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize
     			string cseq;
     			if (boost::regex_search(line, what, regexPort)) {
     				string match(what[1].first, what[1].second);
-    				_cseq = match;
-    				EXCLOG(LOG_INFO, "cseq=%s", _cseq.to_string().c_str());
+    				boost::trim_right(match);
+    				boost::trim_left(match);
+    				if (match.length()) {
+    				    _cseq = std::stoi(match, nullptr, 10);
+    				    EXCLOG(LOG_INFO, "cseq=%d", _cseq);
+    				}
+    				else {
+    				    EXCLOG(LOG_INFO, "read cseq failed!!!");
+    				}
     			}
     			else {
     				EXCLOG(LOG_ERROR, "can't get cseq!!!");
@@ -207,6 +214,30 @@ bool CRtspSession::ParseRtspRequest(char const * aRequest, unsigned aRequestSize
     			else {
     				EXCLOG(LOG_ERROR, "can't read %s element!!!", tmp2.c_str());
     			}
+    		}
+    		else if ((startpos = line.find(string("Content-Length"))) != string::npos) {
+    		    string tmpstr = line;
+    		    string tmp2 = "Content-Length";
+    		    tmpstr.erase(tmpstr.find(tmp2), tmp2.length());
+    		    string chars = ":";
+    		    tmpstr = exstring::remove_chars(tmpstr, chars);
+    		    boost::trim_right(tmpstr);
+    		    boost::trim_left(tmpstr);
+    		    if (tmpstr.length()) {
+    		        _contentLength = stoi(tmpstr, nullptr, 10);
+    		        EXCLOG(LOG_INFO, "%s:%d",tmp2.c_str(), _contentLength);
+    		    }
+    		    else {
+    		        EXCLOG(LOG_ERROR, "can't read %s element!!!", tmp2.c_str());
+    		    }
+    		}
+    		else if ((startpos = line.find(string("RTP/AVP"))) != string::npos) {
+    		    if (line.find(string("RTP/AVP/TCP")) != string::npos) {
+    		        m_TcpTransport = true;
+    		    }
+    		    else {
+    		        m_TcpTransport = false;
+    		    }
     		}
     	}
 
@@ -431,10 +462,11 @@ void CRtspSession::Handle_RtspOPTION()
     char   Response[1024];
 
     snprintf(Response,sizeof(Response),
-        "RTSP/1.0 200 OK\r\nCSeq: %s\r\n"
-        "Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n\r\n",m_CSeq);
+        "RTSP/1.0 200 OK\r\nCSeq: %zu\r\n"
+        "Public: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n\r\n",_cseq);
 
-    send(m_RtspClient,Response,strlen(Response),0);   
+    //send(m_RtspClient, Response,strlen(Response),0);
+    sendResponse(Response, strlen(Response));
 }
 
 void CRtspSession::Handle_RtspDESCRIBE()
@@ -445,59 +477,77 @@ void CRtspSession::Handle_RtspDESCRIBE()
 
     // check whether we know a stream with the URL which is requested
     m_StreamID = -1;        // invalid URL
-    if ((strcmp(m_URLPreSuffix,"mjpeg") == 0) && (strcmp(m_URLSuffix,"1") == 0)) m_StreamID = 0; else
-    if ((strcmp(m_URLPreSuffix,"mjpeg") == 0) && (strcmp(m_URLSuffix,"2") == 0)) m_StreamID = 1;
+//    if ((strcmp(m_URLPreSuffix,"mjpeg") == 0) && (strcmp(m_URLSuffix,"1") == 0)) m_StreamID = 0; else
+//    if ((strcmp(m_URLPreSuffix,"mjpeg") == 0) && (strcmp(m_URLSuffix,"2") == 0)) m_StreamID = 1;
+    m_StreamID = 1;
     if (m_StreamID == -1)
     {   // Stream not available
         snprintf(Response,sizeof(Response),
-            "RTSP/1.0 404 Stream Not Found\r\nCSeq: %s\r\n%s\r\n",
-            m_CSeq, 
+            "RTSP/1.0 404 Stream Not Found\r\nCSeq: %zu\r\n%s\r\n",
+            _cseq,
             DateHeader());
 
-        send(m_RtspClient,Response,strlen(Response),0);   
+        //send(m_RtspClient,Response,strlen(Response),0);
+        sendResponse(Response, strlen(Response));
         return;
     };
 
     // simulate DESCRIBE server response
     char OBuf[256];
     char * ColonPtr;
-    strcpy(OBuf,m_URLHostPort);
+    //strcpy(OBuf,m_URLHostPort);
+    sprintf(OBuf, "%d", _hostPort);
     ColonPtr = strstr(OBuf,":");
     if (ColonPtr != nullptr) ColonPtr[0] = 0x00;
 
+//    snprintf(SDPBuf,sizeof(SDPBuf),
+//        "v=0\r\n"
+//        "o=- %u 1 IN IP4 %s\r\n"
+//        "s=\r\n"
+//        "t=0 0\r\n"                                            // start / stop - 0 -> unbounded and permanent session
+//        "m=video 0 RTP/AVP 26\r\n"                             // currently we just handle UDP sessions
+//        "c=IN IP4 127.0.0.1\r\n",
+//        rand(),
+//        OBuf);
+
     snprintf(SDPBuf,sizeof(SDPBuf),
-        "v=0\r\n"
-        "o=- %d 1 IN IP4 %s\r\n"           
-        "s=\r\n"
-        "t=0 0\r\n"                                            // start / stop - 0 -> unbounded and permanent session
-        "m=video 0 RTP/AVP 26\r\n"                             // currently we just handle UDP sessions
-        "c=IN IP4 0.0.0.0\r\n",
-        rand(),
-        OBuf);
+            "v=0\r\n"
+            "o=- %u 1 IN IP4 %s\r\n"
+            "s=\r\n"
+            "t=0 0\r\n"                                            // start / stop - 0 -> unbounded and permanent session
+            "m=audio 0 RTP/AVP 0\r\n"                             // currently we just handle UDP sessions
+            "c=IN IP4 0.0.0.0\r\n"
+            "a=rtpmap:0 PCMA/16000/2",
+            rand(),
+            OBuf);
     char StreamName[64];
-    switch (m_StreamID)
-    {
-        case 0: strcpy(StreamName,"mjpeg/1"); break;
-        case 1: strcpy(StreamName,"mjpeg/2"); break;
-    };
+//    switch (m_StreamID)
+//    {
+//        case 0: strcpy(StreamName,"mjpeg/1"); break;
+//        case 1: strcpy(StreamName,"mjpeg/2"); break;
+//    };
+    memset(StreamName, 0x0, sizeof(StreamName));
+    sprintf(StreamName, "%s", _path.to_string().c_str());
+
     snprintf(URLBuf,sizeof(URLBuf),
-        "rtsp://%s/%s",
-        m_URLHostPort,
+        "rtsp://%d/%s",
+        _hostPort,
         StreamName);
     snprintf(Response,sizeof(Response),
-        "RTSP/1.0 200 OK\r\nCSeq: %s\r\n"
+        "RTSP/1.0 200 OK\r\nCSeq: %zu\r\n"
         "%s\r\n"
         "Content-Base: %s/\r\n"
         "Content-Type: application/sdp\r\n"
-        "Content-Length: %u\r\n\r\n"
+        "Content-Length: %zu\r\n\r\n"
         "%s",
-        m_CSeq,
+        _cseq,
         DateHeader(),
         URLBuf,
         strlen(SDPBuf),
         SDPBuf);
 
-    send(m_RtspClient,Response,strlen(Response),0);   
+    //send(m_RtspClient,Response,strlen(Response),0);
+    sendResponse(Response, strlen(Response));
 }
 
 void CRtspSession::Handle_RtspSETUP()
@@ -525,17 +575,17 @@ void CRtspSession::Handle_RtspSETUP()
     }
 
     snprintf(Response,sizeof(Response),
-        "RTSP/1.0 200 OK\r\nCSeq: %s\r\n"
+        "RTSP/1.0 200 OK\r\nCSeq: %zu\r\n"
         "%s\r\n"
         "Transport: %s\r\n"
         "Session: %u\r\n\r\n",
-        m_CSeq,
+        _cseq,
         DateHeader(),
         Transport,
         m_RtspSessionID);
-    EXCLOG(LOG_INFO, "Response:\n%s", Response);
 
-    send(m_RtspClient,Response,strlen(Response),0);
+    //send(m_RtspClient,Response,strlen(Response),0);
+    sendResponse(Response, strlen(Response));
 }
 
 void CRtspSession::Handle_RtspPLAY()
@@ -544,16 +594,23 @@ void CRtspSession::Handle_RtspPLAY()
 
     // simulate SETUP server response
     snprintf(Response,sizeof(Response),
-        "RTSP/1.0 200 OK\r\nCSeq: %s\r\n"
+        "RTSP/1.0 200 OK\r\nCSeq: %zu\r\n"
         "%s\r\n"
         "Range: npt=0.000-\r\n"
         "Session: %u\r\n"
         "RTP-Info: url=rtsp://127.0.0.1:8554/mjpeg/1/\r\n\r\n",
-        m_CSeq,
+        _cseq,
         DateHeader(),
         m_RtspSessionID);
-    EXCLOG(LOG_INFO, "Response:\n%s", Response);
-    send(m_RtspClient,Response,strlen(Response),0);
+
+    //send(m_RtspClient,Response,strlen(Response),0);
+    sendResponse(Response, strlen(Response));
+}
+
+void CRtspSession::sendResponse(char* data, size_t len)
+{
+    EXCLOG(LOG_INFO, "Response:\n%s", data);
+    send(m_RtspClient,data, len, 0);
 }
 
 char const * CRtspSession::DateHeader() 
@@ -562,6 +619,18 @@ char const * CRtspSession::DateHeader()
     time_t tt = time(NULL);
     strftime(buf, sizeof buf, "Date: %a, %b %d %Y %H:%M:%S GMT", gmtime(&tt));
     return buf;
+}
+
+exstring CRtspSession::directiveString(RTSP_CMD_TYPES type)
+{
+    switch(type) {
+        case RTSP_OPTIONS:      return exstring("OPTIONS");
+        case RTSP_DESCRIBE:     return exstring("DESCRIBE");
+        case RTSP_SETUP:        return exstring("SETUP");
+        case RTSP_PLAY:         return exstring("PLAY");
+        case RTSP_TEARDOWN:     return exstring("TEARDOWN");
+        default : return exstring("UNKNOWN");
+    }
 }
 
 int CRtspSession::GetStreamID()

@@ -136,23 +136,47 @@ void* SessionThreadHandler_JRTP(void* lpParam)
     FD_ZERO(&readsets);
     FD_SET(Client, &readsets);
 
-    unsigned char imgbuf[1024 * 1024];
-    int n_size = 0;
-    size_t offset = 0;
-    FILE *f = fopen("./sample.jpg", "r");
+//    unsigned char imgbuf[1024 * 1024];
+//    int n_size = 0;
+//    size_t offset = 0;
+//    FILE *f = fopen("./sample.jpg", "r");
+//    if (f) {
+//        while( 0 < (n_size = fread(&imgbuf[offset], 1, 1024, f))) {
+//            offset += n_size;
+//        }
+//    }
+//    else {
+//        EXCLOG(LOG_ERROR, "can't open file!");
+//    }
+//    size_t imgsize = offset;
+//    EXCLOG(LOG_INFO, "imgsize=%d", imgsize);
+
+
+    unsigned int packetSize = 1600;
+    unsigned int packetCount = 10 * 60;
+    const unsigned int audioDataSize = (packetSize * packetCount);
+    unsigned int packetOffset = 0;
+    unsigned char audiobuf[1600 * 10 * 60 + 1000];
+    memset(audiobuf, 0x0, sizeof(audiobuf));
+    FILE *f = fopen("./sample.wav", "r");
     if (f) {
-        while( 0 < (n_size = fread(&imgbuf[offset], 1, 1024, f))) {
-            offset += n_size;
+        size_t offset = 0;
+        int n_size;
+
+        fread(&audiobuf[0], 1, 44, f); //< skip wav header
+
+        while(offset < audioDataSize) {
+            if ( 0 < (n_size = fread(&audiobuf[offset], 1, packetSize, f))) {
+                offset += n_size;
+            }
+            else {
+                break;
+            }
         }
     }
     else {
         EXCLOG(LOG_ERROR, "can't open file!");
     }
-    size_t imgsize = offset;
-    EXCLOG(LOG_INFO, "imgsize=%d", imgsize);
-
-
-
 
     //////////////////////////////////////////////////////////////////////
 
@@ -342,14 +366,25 @@ void* SessionThreadHandler_JRTP(void* lpParam)
             }
 #endif
 
-
-            for (int i = 0; i < 10000; i++) {
-                status = sess.SendPacket((void *)"1234567890",10,0,false,10);
+            char buffer[800];
+            memset(buffer, 0x0, sizeof(buffer));
+//            for (int i = 0; i < 10; i++) {
+//                status = sess.SendPacket((void *)buffer, sizeof(buffer), 0, false, 10);
+//                if (status < 0) {
+//                    EXCLOG(LOG_ERROR, "RTPSession.SendPacket() fail : %s", RTPGetErrorString(status).c_str());
+//                }
+//                else {
+//                    //EXCLOG(LOG_INFO, "RTPSession.SendPacket() SUCCEEDED!!!");
+//                }
+//            }
+            for (int i = 0; i < 32; i++) {
+                status = sess.SendPacket((void *)&audiobuf[packetOffset], packetSize, 0, false, 125);
                 if (status < 0) {
-                    EXCLOG(LOG_ERROR, "RTPSession.SendPacket() fail : %s", RTPGetErrorString(status).c_str());
+                    EXCLOG(LOG_ERROR, "status=%d", status);
                 }
-                else {
-                    //EXCLOG(LOG_INFO, "RTPSession.SendPacket() SUCCEEDED!!!");
+                packetOffset += packetSize;
+                if (packetOffset >= audioDataSize) {
+                    packetOffset = 0;
                 }
             }
 
@@ -379,7 +414,7 @@ void* SessionThreadHandler_JRTP(void* lpParam)
 
             sess.EndDataAccess();
             //END OF INCOMING DATA PROCESSING //
-            RTPTime::Wait(RTPTime(1,0));
+            RTPTime::Wait(RTPTime(0,100000));
 
 
             //Streamer.StreamImage(RtspSession.GetStreamID());
