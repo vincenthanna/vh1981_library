@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdarg>
 #include <functional>
+#include <algorithm>
 
 namespace vh1981lib {
 
