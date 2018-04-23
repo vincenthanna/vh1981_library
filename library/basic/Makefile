@@ -8,7 +8,7 @@ RANLIB = ranlib
 LIB_NAME = vh1981_basic
 LIB_FULL_NAME = lib$(LIB_NAME).a
 
-SRCS = exstring.cpp exlog.cpp
+SRCS = exstring.cpp exlog.cpp exthread.cpp
 OBJS = $(SRCS:%.cpp=%.o)
 
 LIBS = -lgtest -lpthread

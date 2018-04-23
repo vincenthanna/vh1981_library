@@ -7,11 +7,32 @@
 
 #include "exstring.h"
 #include "exlog.h"
+#include "exthread.h"
 
 using namespace std;
 using namespace vh1981lib;
 
 int gexstringtest = 0;
+
+class testexthread : public exthread
+{
+public:
+    testexthread(exstring str);
+
+    void threadFunc()
+    {
+        int cnt = 0;
+        while(cnt++ < 5) {
+            EXCLOG(LOG_INFO, "thread running...");
+            sleep(1);
+        }
+    }
+};
+
+testexthread::testexthread(exstring str) : exthread(str)
+{
+
+}
 
 TEST(exstring_test, ctor)
 {
@@ -64,6 +85,19 @@ TEST(exstring_test, log)
         EXCLOG(LOG_FATAL, "LOG_FATAL");
 
     }
+}
+
+TEST(exstring_test, exthreadtest)
+{
+    testexthread t(exstring("testthread"));
+    t.run();
+//    EXCLOG(LOG_FATAL, "LOG_FATAL");
+
+    sleep(1);
+    while(t.id() != 0) {
+        ::sleep(1);
+    }
+    EXCLOG(LOG_FATAL, "LOG_FATAL");
 }
 
 int main(int argc, char **argv) {

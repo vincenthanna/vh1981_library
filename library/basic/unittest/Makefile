@@ -3,7 +3,7 @@ CXXFLAGS = -g -std=c++11 -I ../
 TARGET = a.out
 CXX = g++
 
-OBJS = ../exstring.o ../exlog.o unittest.o
+OBJS = ../exstring.o ../exlog.o ../exthread.o unittest.o
 
 LIBS = -lgtest -lpthread
 
