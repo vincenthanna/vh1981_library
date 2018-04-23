@@ -517,7 +517,7 @@ void CRtspSession::Handle_RtspDESCRIBE()
             "t=0 0\r\n"                                            // start / stop - 0 -> unbounded and permanent session
             "m=audio 0 RTP/AVP 0\r\n"                             // currently we just handle UDP sessions
             "c=IN IP4 0.0.0.0\r\n"
-            "a=rtpmap:0 PCMA/16000/2",
+            "a=rtpmap:0 L8/44100/2",
             rand(),
             OBuf);
     char StreamName[64];
