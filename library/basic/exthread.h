@@ -1,8 +1,6 @@
 #ifndef _VH1981_EXTHREAD_
 #define _VH1981_EXTHREAD_
 
-#include <string>
-
 #include "exstring.h"
 
 namespace vh1981lib {

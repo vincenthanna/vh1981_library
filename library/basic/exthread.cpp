@@ -37,9 +37,7 @@ void exthread::initThread()
 
 void exthread::runThread()
 {
-    EXCLOG(LOG_INFO, "############");
     started();
-    EXCLOG(LOG_INFO, "############");
     setStatus(RUNNING);
     threadFunc();
     setStatus(FINISHING);
