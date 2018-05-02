@@ -3,6 +3,8 @@
 
 #include "exstring.h"
 
+#include <pthread.h>
+
 namespace vh1981lib {
 
     /**
@@ -35,7 +37,7 @@ namespace vh1981lib {
     //@{
     private:
         unsigned int _id;
-        unsigned long int _tid;
+        pthread_t _tid;
         vh1981lib::exstring _name;
         Status _status;
 

@@ -6,6 +6,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <pthread.h>
+
 #include "exthread.h"
 #include "exlog.h"
 
@@ -14,7 +16,7 @@ using namespace vh1981lib;
 
 exthread::exthread(const vh1981lib::exstring name) :
     _id(0),
-    _tid(0),
+	_tid(0),
     _name(name),
     _status(READY)
 {
@@ -70,6 +72,7 @@ bool exthread::run()
     }
 
     sched_yield();
+    return true;
 }
 
 void exthread::quit()
