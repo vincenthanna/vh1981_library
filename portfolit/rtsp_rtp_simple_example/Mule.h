@@ -4,8 +4,8 @@
 namespace vh1981lib {
 
     /**
-     @class <<<name>>>
-     @brief <<<description>>>
+     @class Mule
+     @brief 소켓 통신 처리 클래스
      */
 
     class Mule {

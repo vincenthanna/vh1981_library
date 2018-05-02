@@ -5,20 +5,26 @@
 
 #include <gtest/gtest.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <iostream>
 #include <sstream>
 #include <string>
 
 #include <boost/regex.hpp>
 #include <boost/foreach.hpp>
-
+#include <memory>
 
 
 #include "library/basic/exstring.h"
 #include "library/basic/exlog.h"
 #include "CRtspSession.h"
 #include "RtspParser.h"
-#include "ServerBase.h"
+//#include "ServerBase.h"
+#include "Packet.h"
+#include "BasicServer.h"
 
 using namespace std;
 using namespace vh1981lib;
@@ -52,6 +58,40 @@ const char* sample_text_PLAY = "PLAY rtsp://127.0.0.1:8554/mjpeg/1/ RTSP/1.0\n"\
 //    session.ParseRtspRequest(sample_text_PLAY, strlen(sample_text_PLAY));
 //
 //}
+
+TEST(Server, Packet)
+{
+    Packet packet(1536);
+    const char* data = "Hello World";
+    char* buf = (char*)packet.buffer();
+    sprintf(buf, data);
+    packet.setDataLen(strlen(data));
+
+    char buf2[100];
+    memset(buf2,0x0,sizeof(buf2));
+}
+
+TEST(Server, Session)
+{
+    unsigned char testdata[100];
+    for (int i = 0; i < 100; i++) {
+        testdata[i] = i;
+    }
+
+
+    Session session;
+    const int packetCount = 10;
+    for (int i = 0; i < packetCount; i++) {
+        shared_ptr<Packet> packet(new Packet());
+        unsigned char* buffer = packet->buffer();
+        memcpy(buffer, testdata, 100);
+        session.putRecvPacket(packet);
+    }
+
+    for (int i = 0; i < packetCount; i++) {
+        shared_ptr<Packet> packet = session.getRecvPacket();
+    }
+}
 
 TEST(Server, test)
 {
