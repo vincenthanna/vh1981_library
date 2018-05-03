@@ -1,11 +1,15 @@
-#ifndef _BASIC_SERVER_
-#define _BASIC_SERVER_
+#ifndef _SESSION_H_
+#define _SESSION_H_
 
 #include <netinet/in.h>
 
 #include <list>
 
+#include "library/basic/exmutex.h"
+
 #include "Packet.h"
+
+
 
 namespace vh1981lib {
 
@@ -31,8 +35,6 @@ namespace vh1981lib {
         virtual ~Session() {}
     //@}
 
-
-
     public:
         static const int INVALID_SOCKET;
 
@@ -45,7 +47,10 @@ namespace vh1981lib {
         SessionType _type;
         int _socket;
         sockaddr_in _address;
+        exmutex _recvPacketQueueMutex;
         std::list< std::shared_ptr<Packet> > _recvPacketQueue;
+        exmutex _sendPacketQueueMutex;
+        std::list< std::shared_ptr<Packet> > _sendPacketQueue;
 
     public:
         SessionType sessionType() { return _type; }
@@ -53,6 +58,9 @@ namespace vh1981lib {
         bool putRecvPacket(std::shared_ptr<Packet> packet);
         std::shared_ptr<Packet> getSendPacket();
         bool putSendPacket(std::shared_ptr<Packet> packet);
+
+        int recvPacketCount();
+        int sendPacketCount();
         // member functions
     //@}
 

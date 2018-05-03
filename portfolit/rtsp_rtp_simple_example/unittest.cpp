@@ -24,7 +24,7 @@
 #include "RtspParser.h"
 //#include "ServerBase.h"
 #include "Packet.h"
-#include "BasicServer.h"
+#include "Session.h"
 
 using namespace std;
 using namespace vh1981lib;
@@ -62,41 +62,51 @@ const char* sample_text_PLAY = "PLAY rtsp://127.0.0.1:8554/mjpeg/1/ RTSP/1.0\n"\
 TEST(Server, Packet)
 {
     Packet packet(1536);
-    const char* data = "Hello World";
-    char* buf = (char*)packet.buffer();
-    sprintf(buf, data);
-    packet.setDataLen(strlen(data));
+    unsigned char data[1000];
+    for (int i = 0; i < sizeof(data); i++) {
+        data[i] = (i % 100);
+    }
 
-    char buf2[100];
-    memset(buf2,0x0,sizeof(buf2));
+    memcpy(packet.buffer(), data, sizeof(data));
+    packet.setDataLen(sizeof(data));
+
+    for (int i = 0; i < 100; i++) {
+        EXPECT_TRUE(packet.buffer()[i] == (i % 100));
+    }
 }
 
 TEST(Server, Session)
 {
     unsigned char testdata[100];
-    for (int i = 0; i < 100; i++) {
-        testdata[i] = i;
-    }
-
 
     Session session;
     const int packetCount = 10;
     for (int i = 0; i < packetCount; i++) {
         shared_ptr<Packet> packet(new Packet());
         unsigned char* buffer = packet->buffer();
+
+        for (int j = 0; j < 100; j++) {
+            testdata[j] = i;
+        }
+
         memcpy(buffer, testdata, 100);
         session.putRecvPacket(packet);
     }
 
     for (int i = 0; i < packetCount; i++) {
         shared_ptr<Packet> packet = session.getRecvPacket();
+
+        for (int j = 0; j < 100; j++) {
+            EXPECT_EQ(packet->buffer()[j], i);
+        }
     }
+
+    EXPECT_EQ(session.recvPacketCount(), 0);
 }
 
 TEST(Server, test)
 {
-	EXCLOG(LOG_INFO, "Test");
-	//RTSPServer server();
+
 }
 
 int main(int argc, char **argv) {

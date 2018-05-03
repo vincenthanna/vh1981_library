@@ -7,7 +7,7 @@
 
 #include "library/basic/exlog.h"
 
-#include "BasicServer.h"
+#include "Session.h"
 
 using namespace std;
 using namespace vh1981lib;
@@ -21,6 +21,7 @@ Session::Session(SessionType type) : _type(type),
 
 std::shared_ptr<Packet> Session::getRecvPacket()
 {
+    autoexmutex a(_recvPacketQueueMutex);
     if(_recvPacketQueue.size()) {
         auto packet = _recvPacketQueue.front();
         if (packet.get()) {
@@ -33,6 +34,7 @@ std::shared_ptr<Packet> Session::getRecvPacket()
 
 bool Session::putRecvPacket(std::shared_ptr<Packet> packet)
 {
+    autoexmutex a(_recvPacketQueueMutex);
     if (packet.get()) {
         _recvPacketQueue.push_back(packet);
         return true;
@@ -42,10 +44,24 @@ bool Session::putRecvPacket(std::shared_ptr<Packet> packet)
 
 std::shared_ptr<Packet> Session::getSendPacket()
 {
+    autoexmutex a(_sendPacketQueueMutex);
     return shared_ptr<Packet>(nullptr);
 }
 
 bool Session::putSendPacket(std::shared_ptr<Packet> packet)
 {
+    autoexmutex a(_sendPacketQueueMutex);
     return true;
+}
+
+int Session::recvPacketCount()
+{
+    autoexmutex a(_recvPacketQueueMutex);
+    return _recvPacketQueue.size();
+}
+
+int Session::sendPacketCount()
+{
+    autoexmutex a(_sendPacketQueueMutex);
+    return _sendPacketQueue.size();
 }

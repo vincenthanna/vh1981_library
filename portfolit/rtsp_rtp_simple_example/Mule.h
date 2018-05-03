@@ -1,6 +1,8 @@
 #ifndef _MULE_H_
 #define _MULE_H_
 
+#include "library/basic/exthread.h"
+
 namespace vh1981lib {
 
     /**
@@ -8,7 +10,7 @@ namespace vh1981lib {
      @brief 소켓 통신 처리 클래스
      */
 
-    class Mule {
+    class Mule : public exthread {
     /**
      @name 생성자 / 소멸자
      */
@@ -27,6 +29,14 @@ namespace vh1981lib {
 
     public:
         // member functions
+    //@}
+
+    /**
+     @name exthread function override
+     */
+    //@{
+    private:
+        void threadFunc();
     //@}
 
     };

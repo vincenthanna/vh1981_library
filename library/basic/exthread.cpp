@@ -71,12 +71,14 @@ bool exthread::run()
         return false;
     }
 
-    sched_yield();
+    ::usleep(10000); // wait coreThreadFunc() really started...
+
     return true;
 }
 
 void exthread::quit()
 {
+
 }
 
 void exthread::join()
