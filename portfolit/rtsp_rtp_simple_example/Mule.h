@@ -25,6 +25,7 @@ namespace vh1981lib {
      */
     //@{
     private:
+
         // member variables
 
     public:
@@ -38,6 +39,10 @@ namespace vh1981lib {
     private:
         void threadFunc();
     //@}
+
+
+    private:
+
 
     };
 

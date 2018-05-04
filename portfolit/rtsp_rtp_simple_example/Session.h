@@ -53,7 +53,9 @@ namespace vh1981lib {
         std::list< std::shared_ptr<Packet> > _sendPacketQueue;
 
     public:
-        SessionType sessionType() { return _type; }
+        int socket() const { return _socket; }
+        void setSocket(int socket) { _socket = socket; }
+        SessionType sessionType() const { return _type; }
         std::shared_ptr<Packet> getRecvPacket();
         bool putRecvPacket(std::shared_ptr<Packet> packet);
         std::shared_ptr<Packet> getSendPacket();

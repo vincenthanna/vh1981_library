@@ -10,7 +10,7 @@ LIBS = -lvh1981_basic
 
 SUBDIRS += ../../library/basic
 
-SRCS_SUB = CRtspSession.cpp CStreamer.cpp JPEGSamples.cpp RtspParser.cpp RtspTypes.cpp Packet.cpp Session.cpp
+SRCS_SUB = CRtspSession.cpp CStreamer.cpp JPEGSamples.cpp RtspParser.cpp RtspTypes.cpp Packet.cpp Session.cpp RTSPTestServer.cpp 
 SRCS = $(SRCS_SUB) RTSPServerTest.cpp
 OBJS_SUB = $(SRCS_SUB:%.cpp=%.o)
 OBJS = $(SRCS:%.cpp=%.o)

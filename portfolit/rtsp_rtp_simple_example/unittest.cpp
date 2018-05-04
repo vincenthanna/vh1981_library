@@ -25,6 +25,7 @@
 //#include "ServerBase.h"
 #include "Packet.h"
 #include "Session.h"
+#include "RTSPTestServer.h"
 
 using namespace std;
 using namespace vh1981lib;
@@ -104,9 +105,13 @@ TEST(Server, Session)
     EXPECT_EQ(session.recvPacketCount(), 0);
 }
 
-TEST(Server, test)
+TEST(Server, RTSPTestServer)
 {
+    RTSPTestServer rtspServer;
+    shared_ptr<Session> session(new Session());
+    // server session 생성
 
+    rtspServer.addSession(session);
 }
 
 int main(int argc, char **argv) {
