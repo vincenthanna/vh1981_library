@@ -25,7 +25,6 @@ namespace vh1981lib {
      */
     //@{
     private:
-
         // member variables
 
     public:

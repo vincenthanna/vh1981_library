@@ -17,6 +17,11 @@
 #include <boost/foreach.hpp>
 #include <memory>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #include "library/basic/exstring.h"
 #include "library/basic/exlog.h"
@@ -108,9 +113,28 @@ TEST(Server, Session)
 TEST(Server, RTSPTestServer)
 {
     RTSPTestServer rtspServer;
-    shared_ptr<Session> session(new Session());
     // server session 생성
+    sockaddr_in ServerAddr;                                   // server address parameters
+    ServerAddr.sin_family      = AF_INET;
+    ServerAddr.sin_addr.s_addr = INADDR_ANY;
+    ServerAddr.sin_port        = htons(20000);
+    int listenSocket = -1;
+    listenSocket = socket(AF_INET,SOCK_STREAM,0);
+    int iSetOption = 1;
+    setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&iSetOption, sizeof(iSetOption));
+    // bind our master socket to the RTSP port and listen for a client connection
+    if (::bind(listenSocket,(sockaddr*)&ServerAddr,sizeof(ServerAddr)) != 0) {
+    	EXCLOG(LOG_ERROR, "bind failed!");
+    	EXPECT_TRUE(false);
+    }
+    if (listen(listenSocket,5) != 0) {
+    	EXCLOG(LOG_ERROR, "listen failed!");
+    	EXPECT_TRUE(false);
+    }
 
+    shared_ptr<Session> session(new Session());
+    session->setSocket(listenSocket);
+    session->setSessionType(Session::LISTENING);
     rtspServer.addSession(session);
 }
 
