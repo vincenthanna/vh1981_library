@@ -136,6 +136,8 @@ TEST(Server, RTSPTestServer)
     session->setSocket(listenSocket);
     session->setSessionType(Session::LISTENING);
     rtspServer.addSession(session);
+
+    Mule* mule = new Mule();
 }
 
 int main(int argc, char **argv) {
