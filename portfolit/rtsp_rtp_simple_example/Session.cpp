@@ -15,8 +15,17 @@ using namespace vh1981lib;
 const int Session::INVALID_SOCKET = -1;
 
 Session::Session(SessionType type) : _type(type),
-    _socket(INVALID_SOCKET)
+    _socket(INVALID_SOCKET),
+    _serverSocket(INVALID_SOCKET)
 {
+}
+
+int Session::getSocket() const
+{
+    if (_socket == INVALID_SOCKET) {
+        return _serverSocket;
+    }
+    return _socket;
 }
 
 std::shared_ptr<Packet> Session::getRecvPacket()

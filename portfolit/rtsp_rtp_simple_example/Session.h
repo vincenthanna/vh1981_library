@@ -46,6 +46,7 @@ namespace vh1981lib {
         // member variables
         SessionType _type;
         int _socket;
+        int _serverSocket;
         sockaddr_in _address;
         exmutex _recvPacketQueueMutex;
         std::list< std::shared_ptr<Packet> > _recvPacketQueue;
@@ -54,8 +55,12 @@ namespace vh1981lib {
 
     public:
         int socket() const { return _socket; }
+        int serverSocket() const { return _serverSocket; }
+        int getSocket() const;
         void setSocket(int socket) { _socket = socket; }
+        void setServerSocket(int socket) { _serverSocket = socket; }
         SessionType sessionType() const { return _type; }
+        bool isListening() const { return _type == LISTENING; }
         void setSessionType(SessionType type) { _type = type; }
         std::shared_ptr<Packet> getRecvPacket();
         bool putRecvPacket(std::shared_ptr<Packet> packet);

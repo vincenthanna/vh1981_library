@@ -5,14 +5,13 @@
 
 #include "library/basic/exthread.h"
 
-#include "RTSPTestServer.h"
-
 namespace vh1981lib {
 
     /**
      @class Mule
      @brief 소켓 통신 처리 클래스
      */
+    class RTSPTestServer;
 
     class Mule : public exthread {
     /**
@@ -31,11 +30,11 @@ namespace vh1981lib {
     private:
         // member variables
         bool _stopped;
-        RTSPTestServer::SessionsList& _sessionList;
-
+        RTSPTestServer *_server;
 
     public:
         // member functions
+        void setRTSPTestServer(RTSPTestServer* server) { _server = server; }
     //@}
 
     /**
@@ -48,7 +47,7 @@ namespace vh1981lib {
 
 
     private:
-        int makeAllFds(fd_set* readFds, fd_set* writeFds, fd_set* exceptFd);
+        int makeAllFds(fd_set* readFds, fd_set* writeFds, fd_set* exceptFds);
         void processAllFds(fd_set* readFds, fd_set* writeFds, fd_set* exceptFd);
 
 

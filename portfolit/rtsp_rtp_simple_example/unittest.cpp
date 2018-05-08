@@ -31,6 +31,7 @@
 #include "Packet.h"
 #include "Session.h"
 #include "RTSPTestServer.h"
+#include "Mule.h"
 
 using namespace std;
 using namespace vh1981lib;
@@ -132,12 +133,50 @@ TEST(Server, RTSPTestServer)
     	EXPECT_TRUE(false);
     }
 
-    shared_ptr<Session> session(new Session());
-    session->setSocket(listenSocket);
-    session->setSessionType(Session::LISTENING);
-    rtspServer.addSession(session);
+    size_t acceptableClients = 4;
+
+    for (int i = 0; i < acceptableClients; i++) {
+        std::shared_ptr<Session> session(new Session);
+        session->setServerSocket(listenSocket);
+        rtspServer.addSession(session);
+    }
 
     Mule* mule = new Mule();
+    rtspServer.setMule(mule);
+    mule->setRTSPTestServer(&rtspServer);
+    mule->run();
+
+    int clientSockets[4];
+    struct sockaddr_in clientAddr[4];
+    for (int i = 0; i < acceptableClients; i++) {
+        clientSockets[i] = socket(AF_INET, SOCK_STREAM, 0);
+        clientAddr[i].sin_family = AF_INET;
+        clientAddr[i].sin_addr.s_addr = inet_addr("127.0.0.1");
+        clientAddr[i].sin_port = htons(20000);
+        socklen_t client_len = sizeof(sockaddr_in);
+
+        if (connect(clientSockets[i],(sockaddr*) &clientAddr[i], client_len) < 0) {
+            EXPECT_TRUE(false);
+        }
+        char buffer[100];
+        memset(buffer, 0x0, sizeof(buffer));
+        sprintf(buffer, "Sending Data from Client %d", i);
+        send(clientSockets[i], buffer, strlen(buffer), 0);
+    }
+
+    usleep(10000);
+
+
+    for (auto session : rtspServer.sessionsList()) {
+        while (session->recvPacketCount()) {
+            EXCLOG(LOG_INFO, "session packetCount=%d", session->recvPacketCount());
+            shared_ptr<Packet> packet = session->getRecvPacket();
+            if (packet.get()) {
+                EXCLOG(LOG_INFO, "data:%s", packet->buffer());
+            }
+        }
+    }
+
 }
 
 int main(int argc, char **argv) {

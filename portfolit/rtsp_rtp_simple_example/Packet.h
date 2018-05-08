@@ -1,5 +1,5 @@
-#ifndef _CLASS_TEMPLATE_
-#define _CLASS_TEMPLATE_
+#ifndef _PACKET_H_
+#define _PACKET_H_
 
 #include <vector>
 #include <memory>
@@ -34,6 +34,7 @@ namespace vh1981lib {
 
     public:
         unsigned char* buffer() { return _buffer; }
+        size_t bufSize() { return _bufSize; }
         size_t dataLen() { return _dataLen; }
         void setDataLen(size_t len) { _dataLen = len; }
         void clear();

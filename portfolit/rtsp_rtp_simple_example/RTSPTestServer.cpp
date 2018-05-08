@@ -8,11 +8,11 @@
 using namespace std;
 using namespace vh1981lib;
 
-RTSPTestServer::RTSPTestServer() : _mule(nullptr)
+RTSPTestServer::RTSPTestServer() : _mule(nullptr), _sessionList()
 {
 }
 
-bool RTSPTestServer::addSession(std::shared_ptr<Session> sessionPtr)
+bool RTSPTestServer::addSession(const std::shared_ptr<Session>& sessionPtr)
 {
     // need to check assignment ?
     _sessionList.push_back(sessionPtr);

@@ -2,7 +2,6 @@
 #define _RTSP_TEST_SERVER_
 
 #include "Session.h"
-#include "Mule.h"
 
 namespace vh1981lib {
 
@@ -10,6 +9,7 @@ namespace vh1981lib {
      @class RTSPTestServer
      @brief RTPS 테스트용 서버
      */
+    class Mule;
 
     class RTSPTestServer {
     /**
@@ -38,9 +38,9 @@ namespace vh1981lib {
 
     // sessions :
     public:
-        bool addSession(std::shared_ptr<Session> sessionPtr);
+        SessionsList& sessionsList() { return _sessionList; }
+        bool addSession(const std::shared_ptr<Session>& sessionPtr);
         void removeSession(Session* session);
-        const SessionsList& sessionsList() { return _sessionList; }
     //@}
 
     };
