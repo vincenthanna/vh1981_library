@@ -3,8 +3,6 @@ import sys
 import os
 import uuid
 import shutil
-
-
 print(cv2.__version__)
 
 #imageDirPath = sys.argv[1]
@@ -15,14 +13,14 @@ imageDirs = ["김연아", "박지성", "장동건", "전지현", "정우성"]
 
 faceCascade = cv2.CascadeClassifier(cascPath)
 
-
 for imageDirPath in imageDirs:
 
     files = [f for f in os.listdir(imageDirPath) if os.path.isfile(os.path.join(imageDirPath, f))]
     index = 0
 
     croppedImgsDir = os.path.join(imageDirPath, "cropped")
-    shutil.rmtree(croppedImgsDir)
+    if os.path.exists(croppedImgsDir):
+        shutil.rmtree(croppedImgsDir)
     os.makedirs(croppedImgsDir)
 
     for f in files:
