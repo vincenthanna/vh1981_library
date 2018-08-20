@@ -221,8 +221,14 @@ def build_model():
     L3 = tf.nn.relu(L3)
     L3 = tf.nn.dropout(L3, keep_prob)
 
-    W4 = tf.Variable(tf.random_normal([256, categoryCnt], stddev=0.01))
-    model = tf.matmul(L3, W4)
+    W4 = tf.Variable(tf.random_normal([256, 128], stddev=0.01))
+    L4 = tf.reshape(L3, [-1, 256])
+    L4 = tf.matmul(L4, W4)
+    L4 = tf.nn.relu(L4)
+    L4 = tf.nn.dropout(L4, keep_prob)
+
+    W5 = tf.Variable(tf.random_normal([128, categoryCnt], stddev=0.01))
+    model = tf.matmul(L4, W5)
 
     return model
 
@@ -238,7 +244,7 @@ def run():
     global X
     global Y
 
-    model = build_model_2()
+    model = build_model()
 
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=Y))
     optimizer = tf.train.AdamOptimizer(0.001).minimize(cost)
