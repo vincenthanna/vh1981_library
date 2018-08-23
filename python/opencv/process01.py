@@ -4,6 +4,16 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
+#pyplot 한글 출력
+import matplotlib.font_manager as fm
+
+import matplotlib
+print(matplotlib.matplotlib_fname() )
+
+font_name = "NanumGothic"
+matplotlib.rc('font', family = font_name)
+
+
 imageDirs = ["김연아", "박지성", "장동건", "전지현", "정우성"]
 
 
@@ -26,6 +36,17 @@ import matplotlib.image as mpimg
 from PIL import Image
 categoryCnt = len(imageDirs)
 
+# def test():
+#     from tensorflow.examples.tutorials.mnist import input_data
+#     mnist = input_data.read_data_sets('./mnist/data', one_hot=True)
+#
+#     xb, yb = mnist.train.next_batch(100)
+#     print(xb[0].shape)
+#     print(yb[0].shape, yb[0])
+#
+# test()
+
+
 
 # X_train = np.empty((1, 96, 96, 3), float)
 # t_train = np.empty((0, 1, 5))
@@ -38,10 +59,6 @@ t_train = np.empty((0, categoryCnt))
 X_test = np.empty((0,96,96,3))
 t_test = np.empty((0, categoryCnt))
 
-X = tf.placeholder(tf.float32, [None, 96, 96, 3])
-Y = tf.placeholder(tf.float32, [None, categoryCnt])
-keep_prob = tf.placeholder(tf.float32)
-
 # def resize_img(imageFilePath):
 #     image = cv2.imread(imageFilePath)
 #     cv2.resize(image, (96, 96))
@@ -53,6 +70,9 @@ def label_to_onehot(label, depth):
     onehot[label] = 1
     return onehot
 
+def onehot_to_label(onehot):
+    return np.argmax(onehot)
+
 def get_img(imageFilePath):
     image = Image.open(imageFilePath)
     image = image.resize((96,96))
@@ -62,13 +82,129 @@ def get_img(imageFilePath):
 
     return image
 
+
+def data_prepare():
+    train_imgpaths = []
+    train_labels = []
+    test_imgpaths = []
+    test_labels = []
+
+    for index, imgdir in enumerate(imageDirs):
+        imageDirPath = os.path.join(imgdir, "cropped")
+        files = [f for f in os.listdir(imageDirPath)
+                 if os.path.isfile(os.path.join(imageDirPath, f)) and f.find("jpeg") > 0]
+        label = index
+
+        totalCnt = len(files)
+        #print("label ", label, " cnt=", totalCnt)
+
+        trainCnt = totalCnt * 3 / 4
+
+        cnt = 0
+
+        for f in files:
+            imageFilePath = os.path.join(imageDirPath, f)
+            #image = get_img(imageFilePath)
+            if cnt < trainCnt:
+                train_imgpaths.append(imageFilePath)
+                train_labels.append(label)
+
+            else:
+                test_imgpaths.append(imageFilePath)
+                test_labels.append(label)
+
+            cnt += 1
+
+
+
+    # fig = plt.figure(figsize=(10, 10))
+    # for i in range(100):
+    #     fig.add_subplot(10, 10, i + 1)
+    #     img = get_img(xtrain[i])
+    #     plt.imshow(img)
+    #     plt.title(imageDirs[ttrain[i]])
+    #
+    # plt.show()
+
+    #return xtrain, ttrain, xtest, ttest
+
+    print("train data size=", len(train_imgpaths), len(train_labels))
+
+    inputqueue = tf.train.slice_input_producer([train_imgpaths, train_labels], shuffle=True)
+
+    print(inputqueue)
+    return inputqueue
+
+
+#xtrain ,ttrain, xtest, ttest  = data_prepare()
+
+def read_data(item):
+    #print("filepath=", item[0], "label=", item[1])
+    filepath = item[0]
+    label = item[1]
+    image =  tf.image.decode_jpeg(tf.read_file(filepath),channels=3)
+    return image, label, filepath
+
+def read_data_batch(batch_size = 100):
+
+    inputqueue = data_prepare()
+
+    image, label, filepath = read_data(inputqueue)
+
+    image = tf.reshape(image,[96, 96 ,3])
+
+     # random image
+    # image = tf.image.random_flip_left_right(image)
+    # image = tf.image.random_brightness(image,max_delta=0.5)
+    # image = tf.image.random_contrast(image,lower=0.2,upper=2.0)
+    # image = tf.image.random_hue(image,max_delta=0.08)
+    # image = tf.image.random_saturation(image,lower=0.2,upper=2.0)
+
+    batch_image, batch_label, batch_filepath = tf.train.batch([image, label, filepath], batch_size=batch_size)
+    batch_label_onehot = tf.one_hot(tf.to_int64(batch_label), categoryCnt, on_value=1.0 ,off_value=0.0)
+    return batch_image, batch_label_onehot, batch_filepath
+
+
+
+def testdata():
+    image_batch, label_batch, filepath_batch = read_data_batch()
+    with tf.Session() as session:
+
+        print("image_batch=", image_batch.shape, "label_batch=", label_batch.shape)
+
+        init_op = tf.global_variables_initializer() # use this for tensorflow 0.12rc0
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=session, coord=coord)
+        session.run(init_op)
+        imgbatch_, labelbatch_= session.run([image_batch, label_batch])
+
+        print("imgbatch_=", imgbatch_.shape, "labelbatch_=", labelbatch_.shape)
+
+        coord.request_stop()
+        coord.join(threads)
+
+        print('test tf.session() run finish')
+
+testdata()
+
+
+print("hello world")
+
+
+
+
+
+
+
+
+
 def load_data():
     xtrain = []
     ttrain = []
     xtest = []
     ttest = []
 
-    fig = plt.figure(figsize=(10, 10))
+    #fig = plt.figure(figsize=(10, 10))
 
     for index, imgdir in enumerate(imageDirs):
 
@@ -84,7 +220,6 @@ def load_data():
         trainCnt = totalCnt * 3 / 4
 
         cnt = 0
-
 
         for f in files:
             imageFilePath = os.path.join(imageDirPath, f)
@@ -127,7 +262,22 @@ def load_data():
     print("        X_test  : ", X_test.shape)
     print("        t_test  : ", t_test.shape)
 
-    #plt.show()
+    p = np.random.permutation(len(X_train))
+    X_train = X_train[p]
+    t_train = t_train[p]
+
+    fig = plt.figure(figsize=(10, 10))
+    for i in range(100):
+        fig.add_subplot(10, 10, i + 1)
+        plt.imshow(X_train[i])
+        plt.title(imageDirs[onehot_to_label(t_train[i])])
+
+
+    print("t_train[0]", t_train[0].shape, t_train[0])
+
+    plt.show()
+
+
 
 def build_layer(prev, ksize, pdepth, ndepth):
     W = tf.Variable(tf.random_normal([ksize, ksize, pdepth, ndepth], stddev=0.01))
@@ -415,26 +565,42 @@ def build_model_3(images, keep_prob):
 
 
 def run():
-    load_data()
-
     global X_train
     global t_train
     global X_test
     global t_test
 
-    global X
-    global Y
+    load_data()
 
-    global keep_prob
+    X = tf.placeholder(tf.float32, [None, 96, 96, 3])
+    Y = tf.placeholder(tf.float32, [None, categoryCnt])
+    keep_prob = tf.placeholder(tf.float32)
 
     #model = build_model()
     model = build_model_3(X, keep_prob=keep_prob)
 
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=Y))
-    optimizer = tf.train.AdamOptimizer(0.001).minimize(cost)
 
-    print(X_train.shape)
-    print(t_train.shape)
+    tf.summary.scalar('loss',cost)
+
+    #define optimizer
+    optimizer = tf.train.AdamOptimizer(0.0001)
+    train = optimizer.minimize(cost)
+
+    print("X_train.shape : ", X_train.shape)
+    print("t_train.shape : ", t_train.shape)
+
+
+
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)) as session:
+        init = tf.global_variables_initializer()
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=session, coord=coord)
+        session.run(init)
+
+        for i in range(10000):
+            pass
+
 
     # 신경망 모델 학습
     init = tf.global_variables_initializer()
@@ -447,7 +613,6 @@ def run():
 
     ###################################
     total_cost = 0
-
 
     _, cost_val = session.run([optimizer, cost], feed_dict={X: X_train, Y: t_train, keep_prob:0.7})
 
@@ -467,4 +632,4 @@ def run():
 
 
 
-run()
+#run()
