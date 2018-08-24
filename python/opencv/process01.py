@@ -83,7 +83,7 @@ def get_img(imageFilePath):
     return image
 
 
-def data_prepare():
+def data_prepare(istrain):
     train_imgpaths = []
     train_labels = []
     test_imgpaths = []
@@ -128,62 +128,81 @@ def data_prepare():
 
     #return xtrain, ttrain, xtest, ttest
 
-    print("train data size=", len(train_imgpaths), len(train_labels))
+    images = []
+    labels = []
+    if istrain == True:
+        images = train_imgpaths
+        labels = train_labels
+    else:
+        images = test_imgpaths
+        labels = test_labels
 
-    inputqueue = tf.train.slice_input_producer([train_imgpaths, train_labels], shuffle=True)
+    print("data ", "images=", len(images), "labels=", len(labels))
 
-    print(inputqueue)
+    inputqueue = tf.train.slice_input_producer([images, labels], shuffle=True)
+
+
     return inputqueue
 
-
-#xtrain ,ttrain, xtest, ttest  = data_prepare()
 
 def read_data(item):
     #print("filepath=", item[0], "label=", item[1])
     filepath = item[0]
     label = item[1]
-    image =  tf.image.decode_jpeg(tf.read_file(filepath),channels=3)
+    image = tf.image.decode_jpeg(tf.read_file(filepath), channels=3)
+
     #image = tf.read_file(filepath) #  good
     #image = filepath # good
     return image, label, filepath
 
-def read_data_batch(batch_size = 100):
-
-    inputqueue = data_prepare()
-
+def read_data_batch(batch_size = 100, istrain = True):
+    inputqueue = data_prepare(istrain)
     image, label, filepath = read_data(inputqueue)
 
-    image = tf.reshape(image,[96, 96 ,3])
+    '''
+    절대 이미지 resize에 아래 reshape쓰지마라. 에러난다...
+    
+    image = tf.reshape(image,[96, 96 ,3]) # !!!주의!!! 에러남!
+    
+    에러 형태 : 
+        => FIFOQueue is closed and has insufficient elements
+    '''
 
-     # random image
-    # image = tf.image.random_flip_left_right(image)
-    # image = tf.image.random_brightness(image,max_delta=0.5)
-    # image = tf.image.random_contrast(image,lower=0.2,upper=2.0)
-    # image = tf.image.random_hue(image,max_delta=0.08)
-    # image = tf.image.random_saturation(image,lower=0.2,upper=2.0)
+    image = tf.image.resize_images(image, [96, 96])
+
+    # random image
+    image = tf.image.random_flip_left_right(image)
+    image = tf.image.random_brightness(image,max_delta=0.5)
+    image = tf.image.random_contrast(image,lower=0.2,upper=2.0)
+    image = tf.image.random_hue(image,max_delta=0.08)
+    image = tf.image.random_saturation(image,lower=0.2,upper=2.0)
 
     batch_image, batch_label, batch_filepath = tf.train.batch([image, label, filepath], batch_size=batch_size)
+    batch_filepath = tf.reshape(batch_filepath, [batch_size, 1])
+
     batch_label_onehot = tf.one_hot(tf.to_int64(batch_label), categoryCnt, on_value=1.0 ,off_value=0.0)
     return batch_image, batch_label_onehot, batch_filepath
 
 
 
 def testdata():
-    image_batch, label_batch, filepath_batch = read_data_batch()
+    image_batch, label_batch, filepath_batch = read_data_batch(istrain=False)
     with tf.Session() as session:
 
         print("image_batch=", image_batch.shape, "label_batch=", label_batch.shape)
 
-        init_op = tf.initialize_all_variables() # use this for tensorflow 0.12rc0
+        init_op = tf.global_variables_initializer() # use this for tensorflow 0.12rc0
+        init_op2 = tf.local_variables_initializer()
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coord)
         session.run(init_op)
-        imgbatch_, labelbatch_= session.run([image_batch, label_batch])
+        session.run(init_op2)
+        imgbatch_, labelbatch_, filenames_= session.run([image_batch, label_batch, filepath_batch])
 
         print("imgbatch_=", imgbatch_.shape, "labelbatch_=", labelbatch_.shape)
 
-        for i in range(100):
-            print(imgbatch_[i], labelbatch_[i])
+        # for i in range(100):
+        #     print(imgbatch_[i], labelbatch_[i])
 
 
         coord.request_stop()
@@ -571,12 +590,7 @@ def build_model_3(images, keep_prob):
 
 
 def run():
-    global X_train
-    global t_train
-    global X_test
-    global t_test
-
-    load_data()
+    image_batch, label_batch, filepath_batch = read_data_batch()
 
     X = tf.placeholder(tf.float32, [None, 96, 96, 3])
     Y = tf.placeholder(tf.float32, [None, categoryCnt])
@@ -585,9 +599,10 @@ def run():
     #model = build_model()
     model = build_model_3(X, keep_prob=keep_prob)
 
+    # 'cost' or 'loss'
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=Y))
 
-    tf.summary.scalar('loss',cost)
+    #tf.summary.scalar('loss',cost)
 
     #define optimizer
     optimizer = tf.train.AdamOptimizer(0.0001)
@@ -595,6 +610,9 @@ def run():
 
     print("X_train.shape : ", X_train.shape)
     print("t_train.shape : ", t_train.shape)
+
+    # for validation:
+    val_image_batch, val_label_batch, val_filepath_batch = read_data_batch(istrain=False)
 
 
 
