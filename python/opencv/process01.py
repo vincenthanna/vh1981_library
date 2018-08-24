@@ -103,6 +103,7 @@ def data_prepare():
         cnt = 0
 
         for f in files:
+
             imageFilePath = os.path.join(imageDirPath, f)
             #image = get_img(imageFilePath)
             if cnt < trainCnt:
@@ -114,7 +115,6 @@ def data_prepare():
                 test_labels.append(label)
 
             cnt += 1
-
 
 
     # fig = plt.figure(figsize=(10, 10))
@@ -143,6 +143,8 @@ def read_data(item):
     filepath = item[0]
     label = item[1]
     image =  tf.image.decode_jpeg(tf.read_file(filepath),channels=3)
+    #image = tf.read_file(filepath) #  good
+    #image = filepath # good
     return image, label, filepath
 
 def read_data_batch(batch_size = 100):
@@ -172,13 +174,17 @@ def testdata():
 
         print("image_batch=", image_batch.shape, "label_batch=", label_batch.shape)
 
-        init_op = tf.global_variables_initializer() # use this for tensorflow 0.12rc0
+        init_op = tf.initialize_all_variables() # use this for tensorflow 0.12rc0
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coord)
         session.run(init_op)
         imgbatch_, labelbatch_= session.run([image_batch, label_batch])
 
         print("imgbatch_=", imgbatch_.shape, "labelbatch_=", labelbatch_.shape)
+
+        for i in range(100):
+            print(imgbatch_[i], labelbatch_[i])
+
 
         coord.request_stop()
         coord.join(threads)
@@ -192,7 +198,7 @@ print("hello world")
 
 
 
-
+exit()
 
 
 
