@@ -10,77 +10,21 @@ import matplotlib.font_manager as fm
 import matplotlib
 print(matplotlib.matplotlib_fname() )
 
+'''
+pyplot에 기본 설정된 폰트가 한글을 지원하지 않아서 title의 한글 등이 깨지므로
+한글을 지원하는 폰트 명으로 교체한다.
+'''
 font_name = "NanumGothic"
 matplotlib.rc('font', family = font_name)
 
 
 imageDirs = ["0", "1", "2", "3", "4"]
 
-
-##############################################
-# FIXME: mnist data check code... delete later
-'''
-from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets('./mnist/data', one_hot=True)
-
-xb, yb = mnist.train.next_batch(100)
-print(xb.shape)
-print(yb.shape)
-
-'''
-##############################################
-
+categoryCnt = len(imageDirs)
 
 import cv2
 import matplotlib.image as mpimg
 from PIL import Image
-categoryCnt = len(imageDirs)
-
-# def test():
-#     from tensorflow.examples.tutorials.mnist import input_data
-#     mnist = input_data.read_data_sets('./mnist/data', one_hot=True)
-#
-#     xb, yb = mnist.train.next_batch(100)
-#     print(xb[0].shape)
-#     print(yb[0].shape, yb[0])
-#
-# test()
-
-
-
-# X_train = np.empty((1, 96, 96, 3), float)
-# t_train = np.empty((0, 1, 5))
-#
-# X_test = np.empty([])
-# t_test = np.empty([])
-X_train = np.empty((0,96,96,3))
-t_train = np.empty((0, categoryCnt))
-
-X_test = np.empty((0,96,96,3))
-t_test = np.empty((0, categoryCnt))
-
-# def resize_img(imageFilePath):
-#     image = cv2.imread(imageFilePath)
-#     cv2.resize(image, (96, 96))
-#     cv2.imshow(imageFilePath, image)
-#     cv2.waitKey(0)
-
-def label_to_onehot(label, depth):
-    onehot = np.zeros((depth), float)
-    onehot[label] = 1
-    return onehot
-
-def onehot_to_label(onehot):
-    return np.argmax(onehot)
-
-def get_img(imageFilePath):
-    image = Image.open(imageFilePath)
-    image = image.resize((96,96))
-    image = np.asarray(image)
-
-    #print("image.shape=", image.shape)
-
-    return image
 
 
 def prepare_data():
@@ -115,34 +59,6 @@ def prepare_data():
                 test_labels.append(label)
 
             cnt += 1
-
-
-    # fig = plt.figure(figsize=(10, 10))
-    # for i in range(100):
-    #     fig.add_subplot(10, 10, i + 1)
-    #     img = get_img(xtrain[i])
-    #     plt.imshow(img)
-    #     plt.title(imageDirs[ttrain[i]])
-    #
-    # plt.show()
-
-    #return xtrain, ttrain, xtest, ttest
-
-    # images = []
-    # labels = []
-    # if istrain == True:
-    #     images = train_imgpaths
-    #     labels = train_labels
-    # else:
-    #     images = test_imgpaths
-    #     labels = test_labels
-
-    #print("data ", "images=", len(images), "labels=", len(labels))
-
-    #inputqueue = tf.train.slice_input_producer([images, labels], shuffle=True)
-
-
-    #return inputqueue
 
     return train_imgpaths, train_labels, test_imgpaths, test_labels
 
@@ -214,172 +130,10 @@ def testdata():
         print('test tf.session() run finish')
 
 # testdata()
-
-
-# print("hello world")
-
-
-
 # exit()
 
-
-
-# convolutional network layer 1
-def conv1(input_data):
-    # layer 1 (convolutional layer)
-    # FLAGS.conv1_filter_size = 3
-    # FLAGS.conv1_layer_size = 16
-    # FLAGS.stride1 = 1
-
-    with tf.name_scope('conv_1'):
-        W_conv1 = tf.Variable(tf.truncated_normal([3, 3, 3, 16], stddev=0.1))
-        b1 = tf.Variable(tf.truncated_normal([16], stddev=0.1))
-        h_conv1 = tf.nn.conv2d(input_data, W_conv1, strides=[1, 1, 1, 1], padding='SAME')
-        h_conv1_relu = tf.nn.relu(tf.add(h_conv1, b1))
-        h_conv1_maxpool = tf.nn.max_pool(h_conv1_relu
-                                         , ksize=[1, 2, 2, 1]
-                                         , strides=[1, 2, 2, 1], padding='SAME')
-
-    return h_conv1_maxpool
-
-
-# convolutional network layer 2
-def conv2(input_data):
-    # FLAGS.conv2_filter_size = 3
-    # FLAGS.conv2_layer_size = 32
-    # FLAGS.stride2 = 1
-
-    with tf.name_scope('conv_2'):
-        W_conv2 = tf.Variable(tf.truncated_normal([3, 3, 16, 32],stddev=0.1))
-        b2 = tf.Variable(tf.truncated_normal([32], stddev=0.1))
-        h_conv2 = tf.nn.conv2d(input_data, W_conv2, strides=[1, 1, 1, 1], padding='SAME')
-        h_conv2_relu = tf.nn.relu(tf.add(h_conv2, b2))
-        h_conv2_maxpool = tf.nn.max_pool(h_conv2_relu
-                                         , ksize=[1, 2, 2, 1]
-                                         , strides=[1, 2, 2, 1], padding='SAME')
-
-    return h_conv2_maxpool
-
-
-# convolutional network layer 3
-def conv3(input_data):
-    # FLAGS.conv3_filter_size = 3
-    # FLAGS.conv3_layer_size = 64
-    # FLAGS.stride3 = 1
-
-    with tf.name_scope('conv_3'):
-        W_conv3 = tf.Variable(tf.truncated_normal([3, 3, 32, 64],stddev=0.1))
-        b3 = tf.Variable(tf.truncated_normal([64], stddev=0.1))
-        h_conv3 = tf.nn.conv2d(input_data, W_conv3, strides=[1, 1, 1, 1], padding='SAME')
-        h_conv3_relu = tf.nn.relu(tf.add(h_conv3, b3))
-        h_conv3_maxpool = tf.nn.max_pool(h_conv3_relu
-                                         , ksize=[1, 2, 2, 1]
-                                         , strides=[1, 2, 2, 1], padding='SAME')
-
-    return h_conv3_maxpool
-
-
-# convolutional network layer 3
-def conv4(input_data):
-    # FLAGS.conv4_filter_size = 5
-    # FLAGS.conv4_layer_size = 128
-    # FLAGS.stride4 = 1
-
-    with tf.name_scope('conv_4'):
-        W_conv4 = tf.Variable(tf.truncated_normal(
-            [5, 5, 64, 128],
-            stddev=0.1))
-        b4 = tf.Variable(tf.truncated_normal(
-            [128], stddev=0.1))
-        h_conv4 = tf.nn.conv2d(input_data, W_conv4, strides=[1, 1, 1, 1], padding='SAME')
-        h_conv4_relu = tf.nn.relu(tf.add(h_conv4, b4))
-        h_conv4_maxpool = tf.nn.max_pool(h_conv4_relu
-                                         , ksize=[1, 2, 2, 1]
-                                         , strides=[1, 2, 2, 1], padding='SAME')
-
-    return h_conv4_maxpool
-
-
-# fully connected layer 1
-def fc1(input_data):
-    # input_layer_size = 6 * 6 * 128
-    # FLAGS.fc1_layer_size = 512
-
-    with tf.name_scope('fc_1'):
-        # 앞에서 입력받은 다차원 텐서를 fcc에 넣기 위해서 1차원으로 피는 작업
-        input_data_reshape = tf.reshape(input_data, [-1, 6 * 6 * 128])
-        W_fc1 = tf.Variable(tf.truncated_normal([6 * 6 * 128, 512], stddev=0.1))
-        b_fc1 = tf.Variable(tf.truncated_normal([512], stddev=0.1))
-        h_fc1 = tf.add(tf.matmul(input_data_reshape, W_fc1), b_fc1)  # h_fc1 = input_data*W_fc1 + b_fc1
-        h_fc1_relu = tf.nn.relu(h_fc1)
-
-    return h_fc1_relu
-
-
-# fully connected layer 2
-def fc2(input_data):
-    # FLAGS.fc2_layer_size = 256
-
-    with tf.name_scope('fc_2'):
-        W_fc2 = tf.Variable(tf.truncated_normal([512, 256], stddev=0.1))
-        b_fc2 = tf.Variable(tf.truncated_normal([256], stddev=0.1))
-        h_fc2 = tf.add(tf.matmul(input_data, W_fc2), b_fc2)  # h_fc1 = input_data*W_fc1 + b_fc1
-        h_fc2_relu = tf.nn.relu(h_fc2)
-
-    return h_fc2_relu
-
-
-# final layer
-def final_out(input_data):
-    global categoryCnt
-    with tf.name_scope('final_out'):
-        W_fo = tf.Variable(tf.truncated_normal([256, categoryCnt], stddev=0.1))
-        b_fo = tf.Variable(tf.truncated_normal([categoryCnt], stddev=0.1))
-        h_fo = tf.add(tf.matmul(input_data, W_fo), b_fo)  # h_fc1 = input_data*W_fc1 + b_fc1
-
-    # 최종 레이어에 softmax 함수는 적용하지 않았다.
-
-    return h_fo
-
-
-# build cnn_graph
-def build_model_3(images, keep_prob):
-    # define CNN network graph
-    # output shape will be (*,48,48,16)
-    r_cnn1 = conv1(images)  # convolutional layer 1
-    print("shape after cnn1 ", r_cnn1.get_shape())
-
-    # output shape will be (*,24,24,32)
-    r_cnn2 = conv2(r_cnn1)  # convolutional layer 2
-    print("shape after cnn2 :", r_cnn2.get_shape())
-
-    # output shape will be (*,12,12,64)
-    r_cnn3 = conv3(r_cnn2)  # convolutional layer 3
-    print("shape after cnn3 :", r_cnn3.get_shape())
-
-    # output shape will be (*,6,6,128)
-    r_cnn4 = conv4(r_cnn3)  # convolutional layer 4
-    print("shape after cnn4 :", r_cnn4.get_shape())
-
-    # fully connected layer 1
-    r_fc1 = fc1(r_cnn4)
-    print("shape after fc1 :", r_fc1.get_shape())
-
-    # fully connected layer2
-    r_fc2 = fc2(r_fc1)
-    print("shape after fc2 :", r_fc2.get_shape())
-
-    ## drop out
-    # 참고 http://stackoverflow.com/questions/34597316/why-input-is-scaled-in-tf-nn-dropout-in-tensorflow
-    # 트레이닝시에는 keep_prob < 1.0 , Test 시에는 1.0으로 한다.
-    r_dropout = tf.nn.dropout(r_fc2, keep_prob)
-    print("shape after dropout :", r_dropout.get_shape())
-
-    # final layer
-    r_out = final_out(r_dropout)
-    print("shape after final layer :", r_out.get_shape())
-
-    return r_out
+# 모델 코드는 외부로 분리함.
+from models.model_jodaehypb import build_model_3
 
 
 def run():
@@ -394,7 +148,7 @@ def run():
 
     # select model :
     #model = build_model()
-    model = build_model_3(X, keep_prob=keep_prob)
+    model = build_model_3(X, keep_prob=keep_prob, labelCnt=categoryCnt)
 
     # 'cost' or 'loss'
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=T))
@@ -413,14 +167,14 @@ def run():
     correct_pred = tf.equal(tf.argmax(model, 1), tf.argmax(T, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
-    tf.summary.scalar('accuracy', accuracy)
-
-    summary = tf.summary.merge_all()
+    # tf.summary.scalar('accuracy', accuracy)
+    #
+    # summary = tf.summary.merge_all()
 
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)) as session:
-        saver = tf.train.Saver()  # create saver to store training model into file
-        summary_writer = tf.summary.FileWriter("./", session.graph)
+        # saver = tf.train.Saver()  # create saver to store training model into file
+        # summary_writer = tf.summary.FileWriter("./", session.graph)
 
         initializer = tf.global_variables_initializer()
         coord = tf.train.Coordinator()
