@@ -5,13 +5,8 @@ import numpy as np
 
 # convolutional network layer 1
 def conv1(input_data):
-    # layer 1 (convolutional layer)
-    # FLAGS.conv1_filter_size = 3
-    # FLAGS.conv1_layer_size = 16
-    # FLAGS.stride1 = 1
-
     with tf.name_scope('conv_1'):
-        W_conv1 = tf.Variable(tf.truncated_normal([3, 3, 3, 16], stddev=0.1))
+        W_conv1 = tf.Variable(tf.truncated_normal([3, 3, 3, 16], stddev=0.1)) #필터 w, h, colorspace, out출력
         b1 = tf.Variable(tf.truncated_normal([16], stddev=0.1))
         h_conv1 = tf.nn.conv2d(input_data, W_conv1, strides=[1, 1, 1, 1], padding='SAME')
         h_conv1_relu = tf.nn.relu(tf.add(h_conv1, b1))
@@ -24,10 +19,6 @@ def conv1(input_data):
 
 # convolutional network layer 2
 def conv2(input_data):
-    # FLAGS.conv2_filter_size = 3
-    # FLAGS.conv2_layer_size = 32
-    # FLAGS.stride2 = 1
-
     with tf.name_scope('conv_2'):
         W_conv2 = tf.Variable(tf.truncated_normal([3, 3, 16, 32],stddev=0.1))
         b2 = tf.Variable(tf.truncated_normal([32], stddev=0.1))
@@ -42,10 +33,6 @@ def conv2(input_data):
 
 # convolutional network layer 3
 def conv3(input_data):
-    # FLAGS.conv3_filter_size = 3
-    # FLAGS.conv3_layer_size = 64
-    # FLAGS.stride3 = 1
-
     with tf.name_scope('conv_3'):
         W_conv3 = tf.Variable(tf.truncated_normal([3, 3, 32, 64],stddev=0.1))
         b3 = tf.Variable(tf.truncated_normal([64], stddev=0.1))
@@ -60,10 +47,6 @@ def conv3(input_data):
 
 # convolutional network layer 3
 def conv4(input_data):
-    # FLAGS.conv4_filter_size = 5
-    # FLAGS.conv4_layer_size = 128
-    # FLAGS.stride4 = 1
-
     with tf.name_scope('conv_4'):
         W_conv4 = tf.Variable(tf.truncated_normal(
             [5, 5, 64, 128],
@@ -81,9 +64,6 @@ def conv4(input_data):
 
 # fully connected layer 1
 def fc1(input_data):
-    # input_layer_size = 6 * 6 * 128
-    # FLAGS.fc1_layer_size = 512
-
     with tf.name_scope('fc_1'):
         # 앞에서 입력받은 다차원 텐서를 fcc에 넣기 위해서 1차원으로 피는 작업
         input_data_reshape = tf.reshape(input_data, [-1, 6 * 6 * 128])
@@ -97,8 +77,6 @@ def fc1(input_data):
 
 # fully connected layer 2
 def fc2(input_data):
-    # FLAGS.fc2_layer_size = 256
-
     with tf.name_scope('fc_2'):
         W_fc2 = tf.Variable(tf.truncated_normal([512, 256], stddev=0.1))
         b_fc2 = tf.Variable(tf.truncated_normal([256], stddev=0.1))
@@ -121,7 +99,7 @@ def final_out(input_data, labelCnt):
 
 
 # build cnn_graph
-def build_model_3(images, keep_prob, labelCnt):
+def build_model_jodaehyub(images, keep_prob, labelCnt):
     # define CNN network graph
     # output shape will be (*,48,48,16)
     r_cnn1 = conv1(images)  # convolutional layer 1

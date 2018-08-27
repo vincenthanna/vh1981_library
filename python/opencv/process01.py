@@ -22,7 +22,6 @@ imageDirs = ["0", "1", "2", "3", "4"]
 
 categoryCnt = len(imageDirs)
 
-import cv2
 import matplotlib.image as mpimg
 from PIL import Image
 
@@ -38,18 +37,13 @@ def prepare_data():
         files = [f for f in os.listdir(imageDirPath)
                  if os.path.isfile(os.path.join(imageDirPath, f)) and f.find("jpeg") > 0]
         label = index
-
         totalCnt = len(files)
-        #print("label ", label, " cnt=", totalCnt)
-
         trainCnt = totalCnt * 3 / 4
 
         cnt = 0
 
         for f in files:
-
             imageFilePath = os.path.join(imageDirPath, f)
-            #image = get_img(imageFilePath)
             if cnt < trainCnt:
                 train_imgpaths.append(imageFilePath)
                 train_labels.append(label)
@@ -75,8 +69,8 @@ def read_data_batch(images, labels, batch_size = 100):
     image, label, filepath = read_data(inputqueue)
 
     '''
-    절대 이미지 resize에 아래 reshape쓰지마라. 에러난다...
-    
+    이미지 변형 관련 오류가 있을 경우 FIFOQueue관련 오류가 나기 쉽다.
+    tf.image를 다음과 같이 직접 reshape할 경우 오류를 발생시킨다.
     image = tf.reshape(image,[96, 96 ,3]) # !!!주의!!! 에러남!
     
     에러 형태 : 
@@ -85,7 +79,7 @@ def read_data_batch(images, labels, batch_size = 100):
 
     image = tf.image.resize_images(image, [96, 96])
 
-    # random image
+    # 랜덤하게 flip/밝기/컨트라스트 등을 적용해서 달라진 이미지가 되게 한다.
     image = tf.image.random_flip_left_right(image)
     image = tf.image.random_brightness(image,max_delta=0.1)
     image = tf.image.random_contrast(image,lower=0.2,upper=1.0)
@@ -94,8 +88,8 @@ def read_data_batch(images, labels, batch_size = 100):
 
     batch_image, batch_label, batch_filepath = tf.train.batch([image, label, filepath], batch_size=batch_size)
     batch_filepath = tf.reshape(batch_filepath, [batch_size, 1])
-
     batch_label_onehot = tf.one_hot(tf.to_int64(batch_label), categoryCnt, on_value=1.0 ,off_value=0.0)
+
     return batch_image, batch_label_onehot, batch_filepath
 
 
@@ -133,7 +127,7 @@ def testdata():
 # exit()
 
 # 모델 코드는 외부로 분리함.
-from models.model_jodaehypb import build_model_3
+from models.model_jodaehypb import build_model_jodaehyub
 
 
 def run():
@@ -148,7 +142,7 @@ def run():
 
     # select model :
     #model = build_model()
-    model = build_model_3(X, keep_prob=keep_prob, labelCnt=categoryCnt)
+    model = build_model_jodaehyub(X, keep_prob=keep_prob, labelCnt=categoryCnt)
 
     # 'cost' or 'loss'
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=T))
@@ -207,4 +201,9 @@ def run():
         coord.join(threads)
         print("finish!")
 
-run()
+
+'''
+run main program :
+'''
+if __name__ == '__main__':
+    run()
