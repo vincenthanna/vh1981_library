@@ -207,41 +207,4 @@ def run():
         coord.join(threads)
         print("finish!")
 
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    # # 신경망 모델 학습
-    # init = tf.global_variables_initializer()
-    # session = tf.Session()
-    # session.run(init)
-    #
-    # batch_size = 100
-    # total_batch = int(X_train.shape[0] / batch_size)
-    # print("total_batch=", total_batch)
-    #
-    # ###################################
-    # total_cost = 0
-    #
-    # _, cost_val = session.run([optimizer, cost], feed_dict={X: X_train, Y: t_train, keep_prob:0.7})
-    #
-    # total_cost += cost_val
-    #
-    # print("avg cost=", total_cost/len(X_train))
-    #
-    # ###################################
-    #
-    # print("optimization completed")
-    #
-    # is_correct = tf.equal(tf.argmax(model, 1), tf.argmax(Y, 1))
-    # accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
-    # print("정확도:", session.run(accuracy, feed_dict={X:X_test, Y:t_test, keep_prob: 1}))
-
-
-
-
-
 run()
