@@ -63,6 +63,22 @@ def read_data(item):
     image = tf.image.decode_jpeg(tf.read_file(filepath), channels=3)
     return image, label, filepath
 
+def random_image_modify(image):
+    '''
+    랜덤하게 flip/밝기/컨트라스트 등을 적용해서 꺼낼 때마다 다른 이미지가 되게 한다.
+    한정된 train/test 데이터 수를 늘리는 방법
+
+    :param image: tf.image 오브젝트
+    :return: modify된 image object
+    '''
+
+    image = tf.image.random_flip_left_right(image)
+    image = tf.image.random_brightness(image, max_delta=0.1)
+    image = tf.image.random_contrast(image, lower=0.4, upper=0.6)
+    image = tf.image.random_hue(image, max_delta=0.08)
+    image = tf.image.random_saturation(image, lower=0.4, upper=0.6)
+    return image
+
 def read_data_batch(images, labels, batch_size = 100):
     inputqueue = tf.train.slice_input_producer([images, labels], shuffle=True)
     image, label, filepath = read_data(inputqueue)
@@ -76,14 +92,9 @@ def read_data_batch(images, labels, batch_size = 100):
         => FIFOQueue is closed and has insufficient elements
     '''
 
-    image = tf.image.resize_images(image, [96, 96])
+    image = tf.image.resize_images(image, [96, 96]) #이미지를 랜덤하게 변경한다.
 
-    # 랜덤하게 flip/밝기/컨트라스트 등을 적용해서 꺼낼 때마다 다른 이미지가 되게 한다.
-    image = tf.image.random_flip_left_right(image)
-    image = tf.image.random_brightness(image,max_delta=0.1)
-    image = tf.image.random_contrast(image,lower=0.2,upper=1.0)
-    image = tf.image.random_hue(image,max_delta=0.08)
-    image = tf.image.random_saturation(image,lower=0.2,upper=1.0)
+    image = random_image_modify(image)
 
     batch_image, batch_label, batch_filepath = tf.train.batch([image, label, filepath], batch_size=batch_size)
     batch_filepath = tf.reshape(batch_filepath, [batch_size, 1])
@@ -93,6 +104,10 @@ def read_data_batch(images, labels, batch_size = 100):
 
 
 def testdata():
+    '''
+
+    :return:
+    '''
     trainImgPaths, trainLabels, testImgPaths, testLabels = prepare_data()
 
     image_batch, label_batch, filepath_batch = read_data_batch(trainImgPaths, trainLabels, batch_size=100)
@@ -143,9 +158,7 @@ def run():
     # 'cost' or 'loss'
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=T))
 
-    #tf.summary.scalar('loss',cost)
-
-    #define optimizer
+    # optimizer
     optimizer = tf.train.AdamOptimizer(0.0001)
     train = optimizer.minimize(cost)
 
@@ -154,15 +167,7 @@ def run():
     correct_pred = tf.equal(tf.argmax(model, 1), tf.argmax(T, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
-    # tf.summary.scalar('accuracy', accuracy)
-    #
-    # summary = tf.summary.merge_all()
-
-
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)) as session:
-        # saver = tf.train.Saver()  # create saver to store training model into file
-        # summary_writer = tf.summary.FileWriter("./", session.graph)
-
+    with tf.Session() as session:
         initializer = tf.global_variables_initializer()
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coord)
@@ -175,11 +180,12 @@ def run():
             if i % 10 == 0:
                 print("## steps ", i)
 
+                #train 데이터 정확도
                 rt = session.run([T_max, prediction_max, cost, accuracy],
                                  feed_dict={X:images_, T:labels_, keep_prob:1.0})
                 print("Prediction loss:", rt[2], ' accuracy:', rt[3])
 
-                #validation steps
+                #test 데이터 정확도
                 vimages_, vlabels_ = session.run([vimage_batch, vlabel_batch])
                 rv = session.run([T_max, prediction_max, cost, accuracy],
                                  feed_dict={X:vimages_, T:vlabels_, keep_prob:1.0})
@@ -189,7 +195,6 @@ def run():
                 if rv[3] > 0.9:
                     break
 
-                #validation accuracy
         coord.request_stop()
         coord.join(threads)
         print("finish!")

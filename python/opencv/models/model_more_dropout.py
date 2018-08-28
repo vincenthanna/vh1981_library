@@ -2,7 +2,15 @@
 # -*- coding: UTF-8 -*-
 
 '''
-model_jodaehyub 에서 dropout이 의심되어 현재 마지막 layer에만 적용되어 있는 dropout을 fc 전체에 추가하였음.
+
+model_jodaehyub 에서 overfitting이 의심되어 현재 마지막 layer에만 적용되어 있는 dropout을 fc 전체에 추가하였음.
+fc layer도 추가함(convolution에서 fc로 넘어갈 때 데이터가 손상되는 것으로 추정되어 추가함)
+
+수정한 결과, 정확도가 80%대에 도달하는 시간이 대략 1/3로 줄어들었지만 80%대에서 더 이상 정확도가 늘어나지 않는 문제는
+변화없이 발생함을 확인
+단 90%에 도달하는 시간은 이전보다는 확연하게 개선됨을 확인하였음.
+    (기존(model_jodaehyub)에서는 9900번대, 해당 모델에서는 6300번대)
+
 '''
 
 import sys
@@ -69,9 +77,17 @@ def conv4(input_data):
     return h_conv4_maxpool
 
 
-
-
 def fclayer(layername, input, inputsize, outputsize, keep_prob):
+    '''
+    fully-connected layer 생성을 위한 helper 함수
+
+    :param layername: tensorflow name scope 문자열
+    :param input: 입력 layer 오브젝트
+    :param inputsize: 입력 layer width
+    :param outputsize: 출력 layer widht
+    :param keep_prob: dropout ratio.
+    :return: layer 오브젝트
+    '''
     with tf.name_scope(layername):
 
         w = tf.Variable(tf.truncated_normal([inputsize, outputsize], stddev=0.1))
@@ -83,31 +99,6 @@ def fclayer(layername, input, inputsize, outputsize, keep_prob):
         r_dropout_fc1 = tf.nn.dropout(h_relu, keep_prob)
 
     return h_relu
-
-
-# # fully connected layer 1
-# def fc1(input_data):
-#     with tf.name_scope('fc_1'):
-#         # 앞에서 입력받은 다차원 텐서를 fcc에 넣기 위해서 1차원으로 피는 작업
-#         input_data_reshape = tf.reshape(input_data, [-1, 6 * 6 * 128])
-#         W_fc1 = tf.Variable(tf.truncated_normal([6 * 6 * 128, 1024], stddev=0.1))
-#         b_fc1 = tf.Variable(tf.truncated_normal([1024], stddev=0.1))
-#         h_fc1 = tf.add(tf.matmul(input_data_reshape, W_fc1), b_fc1)  # h_fc1 = input_data*W_fc1 + b_fc1
-#         h_fc1_relu = tf.nn.relu(h_fc1)
-#
-#     return h_fc1_relu
-#
-#
-# # fully connected layer 2
-# def fc2(input_data):
-#     with tf.name_scope('fc_2'):
-#         W_fc2 = tf.Variable(tf.truncated_normal([512, 256], stddev=0.1))
-#         b_fc2 = tf.Variable(tf.truncated_normal([256], stddev=0.1))
-#         h_fc2 = tf.add(tf.matmul(input_data, W_fc2), b_fc2)  # h_fc1 = input_data*W_fc1 + b_fc1
-#         h_fc2_relu = tf.nn.relu(h_fc2)
-#
-#     return h_fc2_relu
-
 
 # final layer
 def final_out(input_data, input_size, labelCnt):
@@ -123,7 +114,7 @@ def final_out(input_data, input_size, labelCnt):
 
 # build cnn_graph
 def build_model_more_dropout(images, keep_prob, labelCnt):
-    # define CNN network graph
+
     # output shape will be (*,48,48,16)
     r_cnn1 = conv1(images)  # convolutional layer 1
     print("shape after cnn1 ", r_cnn1.get_shape())
@@ -140,7 +131,7 @@ def build_model_more_dropout(images, keep_prob, labelCnt):
     r_cnn4 = conv4(r_cnn3)  # convolutional layer 4
     print("shape after cnn4 :", r_cnn4.get_shape())
 
-    # 앞에서 입력받은 다차원 텐서를 fcc에 넣기 위해서 1차원으로 피는 작업
+    # 앞에서 입력받은 다차원 텐서를 fcc에 넣기 위해서 1차원으로 펴는 작업
     input_data_reshape = tf.reshape(r_cnn4, [-1, 6 * 6 * 128]) #convolution layer 끝난 후 크기를 알아야 한다.
 
     # fully-connected layers :
