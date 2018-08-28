@@ -107,7 +107,7 @@ def final_out(input_data, labelCnt):
 
 
 # build cnn_graph
-def build_model_jodaehyub(images, keep_prob, labelCnt):
+def build_model_more_dropout(images, keep_prob, labelCnt):
     # define CNN network graph
     # output shape will be (*,48,48,16)
     r_cnn1 = conv1(images)  # convolutional layer 1
@@ -129,8 +129,11 @@ def build_model_jodaehyub(images, keep_prob, labelCnt):
     r_fc1 = fc1(r_cnn4)
     print("shape after fc1 :", r_fc1.get_shape())
 
+    # dropout r_fc1
+    r_dropout_fc1 = tf.nn.dropout(r_fc1, keep_prob)
+
     # fully connected layer2
-    r_fc2 = fc2(r_fc1)
+    r_fc2 = fc2(r_dropout_fc1)
     print("shape after fc2 :", r_fc2.get_shape())
 
     ## drop out

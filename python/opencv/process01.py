@@ -113,11 +113,6 @@ def testdata():
 
         print("imgbatch_=", imgbatch_.shape, "labelbatch_=", labelbatch_.shape)
         print("vimgbatch_=", vimgbatch_.shape, "vlabelbatch_=", vlabelbatch_.shape)
-
-        # for i in range(100):
-        #     print(imgbatch_[i], labelbatch_[i])
-
-
         coord.request_stop()
         coord.join(threads)
 
@@ -126,9 +121,12 @@ def testdata():
 # testdata()
 # exit()
 
-# 모델 코드는 외부로 분리함.
-from models.model_jodaehypb import build_model_jodaehyub
 
+'''
+모델 코드는 외부로 분리해서 교체하면서 테스트한다.
+'''
+from models.model_jodaehypb import build_model_jodaehyub
+from models.model_more_dropout import build_model_more_dropout
 
 def run():
     # prepare data:
@@ -140,9 +138,8 @@ def run():
     T = tf.placeholder(tf.float32, [None, categoryCnt])
     keep_prob = tf.placeholder(tf.float32)
 
-    # select model :
-    #model = build_model()
-    model = build_model_jodaehyub(X, keep_prob=keep_prob, labelCnt=categoryCnt)
+    # select model : FIXME:
+    model = build_model_more_dropout(X, keep_prob=keep_prob, labelCnt=categoryCnt)
 
     # 'cost' or 'loss'
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=T))
@@ -152,9 +149,6 @@ def run():
     #define optimizer
     optimizer = tf.train.AdamOptimizer(0.0001)
     train = optimizer.minimize(cost)
-
-    # print("X_train.shape : ", X_train.shape)
-    # print("t_train.shape : ", t_train.shape)
 
     T_max = tf.argmax(T, 1)
     prediction_max = tf.argmax(model, 1)
