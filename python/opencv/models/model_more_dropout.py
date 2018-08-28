@@ -2,8 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 '''
-"연예인 얼굴 인식 모델을 만들어보자 #2 CNN 모델을 만들고 학습 시켜보기" 에서 사용된 CNN 모델 코드
-http://bcho.tistory.com/1178
+model_jodaehyub 에서 dropout이 의심되어 현재 마지막 layer에만 적용되어 있는 dropout을 fc 전체에 추가하였음.
 '''
 
 import sys
@@ -11,10 +10,10 @@ import os
 import tensorflow as tf
 import numpy as np
 
-# convolutional network layer 1
+# convolutional network 1
 def conv1(input_data):
     with tf.name_scope('conv_1'):
-        W_conv1 = tf.Variable(tf.truncated_normal([3, 3, 3, 16], stddev=0.1)) #필터 w, h, colorspace, out출력
+        W_conv1 = tf.Variable(tf.truncated_normal([3, 3, 3, 16], stddev=0.1)) #필터 (w, h, colorspace(input filter count), out_filter_count)
         b1 = tf.Variable(tf.truncated_normal([16], stddev=0.1))
         h_conv1 = tf.nn.conv2d(input_data, W_conv1, strides=[1, 1, 1, 1], padding='SAME')
         h_conv1_relu = tf.nn.relu(tf.add(h_conv1, b1))
@@ -113,20 +112,28 @@ def build_model_more_dropout(images, keep_prob, labelCnt):
     r_cnn1 = conv1(images)  # convolutional layer 1
     print("shape after cnn1 ", r_cnn1.get_shape())
 
+    r_dropout_cnn1 = tf.nn.dropout(r_cnn1, keep_prob)
+
     # output shape will be (*,24,24,32)
-    r_cnn2 = conv2(r_cnn1)  # convolutional layer 2
+    r_cnn2 = conv2(r_dropout_cnn1)  # convolutional layer 2
     print("shape after cnn2 :", r_cnn2.get_shape())
 
+    r_dropout_cnn2 = tf.nn.dropout(r_cnn2, keep_prob)
+
     # output shape will be (*,12,12,64)
-    r_cnn3 = conv3(r_cnn2)  # convolutional layer 3
+    r_cnn3 = conv3(r_dropout_cnn2)  # convolutional layer 3
     print("shape after cnn3 :", r_cnn3.get_shape())
 
+    r_dropout_cnn3 = tf.nn.dropout(r_cnn3, keep_prob)
+
     # output shape will be (*,6,6,128)
-    r_cnn4 = conv4(r_cnn3)  # convolutional layer 4
+    r_cnn4 = conv4(r_dropout_cnn3)  # convolutional layer 4
     print("shape after cnn4 :", r_cnn4.get_shape())
 
+    r_dropout_cnn4 = tf.nn.dropout(r_cnn4, keep_prob)
+
     # fully connected layer 1
-    r_fc1 = fc1(r_cnn4)
+    r_fc1 = fc1(r_dropout_cnn4)
     print("shape after fc1 :", r_fc1.get_shape())
 
     # dropout r_fc1

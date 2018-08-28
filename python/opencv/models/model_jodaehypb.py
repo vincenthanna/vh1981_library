@@ -4,6 +4,10 @@
 '''
 "연예인 얼굴 인식 모델을 만들어보자 #2 CNN 모델을 만들고 학습 시켜보기" 에서 사용된 CNN 모델 코드
 http://bcho.tistory.com/1178
+
+6~7000까지 횟수가 진행된 경우 training 데이터는 90~100까지 정확도가 올라가지만 validation set의 경우 70~85에서
+진동하는 경향이 있음.
+overfitting 의심됨.
 '''
 
 import sys
@@ -14,7 +18,7 @@ import numpy as np
 # convolutional network layer 1
 def conv1(input_data):
     with tf.name_scope('conv_1'):
-        W_conv1 = tf.Variable(tf.truncated_normal([3, 3, 3, 16], stddev=0.1)) #필터 w, h, colorspace, out출력
+        W_conv1 = tf.Variable(tf.truncated_normal([3, 3, 3, 16], stddev=0.1)) #필터 (w, h, colorspace(input filter count), out_filter_count)
         b1 = tf.Variable(tf.truncated_normal([16], stddev=0.1))
         h_conv1 = tf.nn.conv2d(input_data, W_conv1, strides=[1, 1, 1, 1], padding='SAME')
         h_conv1_relu = tf.nn.relu(tf.add(h_conv1, b1))

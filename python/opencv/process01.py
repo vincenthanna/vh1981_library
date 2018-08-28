@@ -25,7 +25,6 @@ categoryCnt = len(imageDirs)
 import matplotlib.image as mpimg
 from PIL import Image
 
-
 def prepare_data():
     train_imgpaths = []
     train_labels = []
@@ -38,7 +37,7 @@ def prepare_data():
                  if os.path.isfile(os.path.join(imageDirPath, f)) and f.find("jpeg") > 0]
         label = index
         totalCnt = len(files)
-        trainCnt = totalCnt * 3 / 4
+        trainCnt = totalCnt * 3 / 4 # training:test 데이털 비율을 3:1로 나누어서 사용한다.
 
         cnt = 0
 
@@ -79,7 +78,7 @@ def read_data_batch(images, labels, batch_size = 100):
 
     image = tf.image.resize_images(image, [96, 96])
 
-    # 랜덤하게 flip/밝기/컨트라스트 등을 적용해서 달라진 이미지가 되게 한다.
+    # 랜덤하게 flip/밝기/컨트라스트 등을 적용해서 꺼낼 때마다 다른 이미지가 되게 한다.
     image = tf.image.random_flip_left_right(image)
     image = tf.image.random_brightness(image,max_delta=0.1)
     image = tf.image.random_contrast(image,lower=0.2,upper=1.0)
