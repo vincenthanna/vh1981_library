@@ -1,0 +1,14 @@
+*.jpg
+*.jpeg
+*.o
+*DS_Store*
+*.txt
+*.zip
+*.make
+*.cmake
+*.internal
+*.bin
+.idea
+.cproject
+.project
+*.includecache
