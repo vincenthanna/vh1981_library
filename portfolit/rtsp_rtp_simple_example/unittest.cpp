@@ -25,6 +25,7 @@
 
 #include "library/basic/exstring.h"
 #include "library/basic/exlog.h"
+#include "library/basic/exsystemutil.h"
 #include "CRtspSession.h"
 #include "RtspParser.h"
 //#include "ServerBase.h"
@@ -111,6 +112,7 @@ TEST(Server, Session)
     EXPECT_EQ(session.recvPacketCount(), 0);
 }
 
+
 TEST(Server, RTSPTestServer)
 {
     RTSPTestServer rtspServer;
@@ -136,12 +138,18 @@ TEST(Server, RTSPTestServer)
     size_t acceptableClients = 4;
 
     for (int i = 0; i < acceptableClients; i++) {
-        std::shared_ptr<Session> session(new Session);
+        std::shared_ptr<Session> session(new Session());
         session->setServerSocket(listenSocket);
         rtspServer.addSession(session);
     }
 
-    Mule* mule = new Mule();
+    /**
+     server
+     	->mule (1)
+     	->session (N)
+     */
+
+    shared_ptr<Mule> mule(new Mule());
     rtspServer.setMule(mule);
     mule->setRTSPTestServer(&rtspServer);
     mule->run();
@@ -164,7 +172,11 @@ TEST(Server, RTSPTestServer)
         send(clientSockets[i], buffer, strlen(buffer), 0);
     }
 
-    usleep(10000);
+    EXCLOG(LOG_INFO , "before sleep");
+
+    usleep(100000);
+
+    EXCLOG(LOG_INFO , "after_sleep");
 
 
     for (auto session : rtspServer.sessionsList()) {
@@ -177,6 +189,15 @@ TEST(Server, RTSPTestServer)
         }
     }
 
+    unsigned int p = timeUtils::tick();
+    while(timeUtils::diff(p, timeUtils::tick()) < 5 * 1000) {
+    	EXCLOG(LOG_INFO, "sleeping...");
+		exthread::sleep(100);
+    }
+
+    mule->quit();
+
+    usleep(100000);
 }
 
 int main(int argc, char **argv) {

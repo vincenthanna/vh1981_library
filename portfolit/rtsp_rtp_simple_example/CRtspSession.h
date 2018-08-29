@@ -7,9 +7,6 @@
 #define _CRtsp_Session_H
 
 #include "RtspTypes.h"
-
-//#include <Winsock2.h>
-//#include <windows.h>
 #include "CStreamer.h"
 #include "library/basic/exstring.h"
 

@@ -71,6 +71,8 @@ void* SessionThreadHandler(void* lpParam)
             Stop = true;
         }
 
+        EXCLOG(LOG_INFO, "RecvBuf :\n%s\n", RecvBuf);
+
         // we filter away everything which seems not to be an RTSP command: O-ption, D-escribe, S-etup, P-lay, T-eardown
         if ((RecvBuf[0] == 'O') || (RecvBuf[0] == 'D') || (RecvBuf[0] == 'S') || (RecvBuf[0] == 'P') || (RecvBuf[0] == 'T'))
         {
@@ -123,21 +125,6 @@ void* SessionThreadHandler_JRTP(void* lpParam)
     fd_set readsets;
     FD_ZERO(&readsets);
     FD_SET(Client, &readsets);
-
-//    unsigned char imgbuf[1024 * 1024];
-//    int n_size = 0;
-//    size_t offset = 0;
-//    FILE *f = fopen("./sample.jpg", "r");
-//    if (f) {
-//        while( 0 < (n_size = fread(&imgbuf[offset], 1, 1024, f))) {
-//            offset += n_size;
-//        }
-//    }
-//    else {
-//        EXCLOG(LOG_ERROR, "can't open file!");
-//    }
-//    size_t imgsize = offset;
-//    EXCLOG(LOG_INFO, "imgsize=%d", imgsize);
 
     // 44100 * 2 * 60
     const unsigned int packetSize = 44100 / 50;
@@ -248,113 +235,6 @@ void* SessionThreadHandler_JRTP(void* lpParam)
             sess.SetDefaultPayloadType(0);
             sess.SetDefaultMark(false);
             sess.SetDefaultTimestampIncrement(3000);
-
-
-
-#if 0
-            {
-                static int m_SendIdx = 0;
-                unsigned char  * Samples1[2] = { JpegScanDataCh1A, JpegScanDataCh1B };
-                unsigned char  * Samples2[2] = { JpegScanDataCh2A, JpegScanDataCh2B };
-                unsigned char ** JpegScanData;
-                unsigned int     JpegScanDataLen;
-
-                switch (StreamID)
-                {
-                    case 0:
-                    {
-                        JpegScanData    = &Samples1[0];
-                        JpegScanDataLen = KJpegCh1ScanDataLen;
-                        break;
-                    };
-                    case 1:
-                    {
-                        JpegScanData    = &Samples2[0];
-                        JpegScanDataLen = KJpegCh2ScanDataLen;
-                        break;
-                    };
-                };
-
-                status = sess.SendPacket(JpegScanData[m_SendIdx], JpegScanDataLen);
-                m_SendIdx++;
-                if (m_SendIdx > 1) m_SendIdx = 0;
-
-#if 0
-                unsigned char        RtpBuf[2048];
-                {
-                    memset(RtpBuf,0x00,sizeof(RtpBuf));
-                    // Prepare the first 4 byte of the packet. This is the Rtp over Rtsp header in case of TCP based transport
-                    //--------------------------------------------------------------------------------------------------
-//                    RtpBuf[0]  = '$';        // magic number
-//                    RtpBuf[1]  = 0;          // number of multiplexed subchannel on RTPS connection - here the RTP channel
-//                    RtpBuf[2]  = (RtpPacketSize & 0x0000FF00) >> 8;
-//                    RtpBuf[3]  = (RtpPacketSize & 0x000000FF);
-                    //--------------------------------------------------------------------------------------------------
-
-                    static size_t m_SequenceNumber = 0;
-                    static size_t m_Timestamp = 0;
-                    // Prepare the 12 byte RTP header
-                    RtpBuf[4]  = 0x80;                               // RTP version
-                    RtpBuf[5]  = 0x9a;                               // JPEG payload (26) and marker bit
-                    RtpBuf[7]  = m_SequenceNumber & 0x0FF;           // each packet is counted with a sequence counter
-                    RtpBuf[6]  = m_SequenceNumber >> 8;
-                    RtpBuf[8]  = (m_Timestamp & 0xFF000000) >> 24;   // each image gets a timestamp
-                    RtpBuf[9]  = (m_Timestamp & 0x00FF0000) >> 16;
-                    RtpBuf[10] = (m_Timestamp & 0x0000FF00) >> 8;
-                    RtpBuf[11] = (m_Timestamp & 0x000000FF);
-                    RtpBuf[12] = 0x13;                               // 4 byte SSRC (sychronization source identifier)
-                    RtpBuf[13] = 0xf9;                               // we just an arbitrary number here to keep it simple
-                    RtpBuf[14] = 0x7e;
-                    RtpBuf[15] = 0x67;
-                    // Prepare the 8 byte payload JPEG header
-                    RtpBuf[16] = 0x00;                               // type specific
-                    RtpBuf[17] = 0x00;                               // 3 byte fragmentation offset for fragmented images
-                    RtpBuf[18] = 0x00;
-                    RtpBuf[19] = 0x00;
-                    RtpBuf[20] = 0x01;                               // type
-                    RtpBuf[21] = 0x5e;                               // quality scale factor
-                    RtpBuf[22] = 0x28;                           // width  / 8 -> 48 pixel
-                    RtpBuf[23] = 0x1E;                           // height / 8 -> 32 pixel
-
-                    m_SequenceNumber++;
-                    m_Timestamp += 3600;
-                }
-                status = sess.SendPacket(&RtpBuf[4], 20);
-
-
-                if (status < 0) {
-                    EXCLOG(LOG_ERROR, "RTPSession.SendPacket() fail : %s", RTPGetErrorString(status).c_str());
-                }
-
-
-                //SendRtpPacket(JpegScanData[m_SendIdx],JpegScanDataLen, StreamID);
-                // Send data to session
-                {
-                    size_t off = 0;
-                    size_t sndsize = 128;
-                    while(off < imgsize) {
-                        if (imgsize - off < sndsize) {
-                            sndsize = imgsize - off;
-                        }
-                        status = sess.SendPacket(&imgbuf[off], sndsize);
-                        off += sndsize;
-
-                        if (status < 0) {
-                            EXCLOG(LOG_ERROR, "RTPSession.SendPacket() fail : %s", RTPGetErrorString(status).c_str());
-                        }
-                        else {
-                            //EXCLOG(LOG_INFO, "<<<<<<<<<<< RTPSession.SendPacket() SUCCEEDED!!! >>>>>>>>>>");
-                        }
-                    }
-
-                    //status = sess.SendPacket(imgbuf, imgsize);
-
-                }
-#endif
-
-            }
-#endif
-
 
             sess.SetTimestampUnit(1.0f / 44100.0f);
             for (int i = 0; i < 10; i++) {

@@ -30,14 +30,11 @@ namespace vh1981lib {
     //@{
     private:
         SessionsList _sessionList;
-        Mule *_mule;
-
-    // set references :
-    public:
-        void setMule(Mule* mule) { _mule = mule; }
+        std::shared_ptr<Mule> _mulePtr;
 
     // sessions :
     public:
+        void setMule(std::shared_ptr<Mule>& mule);
         SessionsList& sessionsList() { return _sessionList; }
         bool addSession(const std::shared_ptr<Session>& sessionPtr);
         void removeSession(Session* session);

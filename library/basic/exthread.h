@@ -36,7 +36,7 @@ namespace vh1981lib {
      */
     //@{
     private:
-        unsigned int _id;
+        int _id;
         pthread_t _tid;
         vh1981lib::exstring _name;
         Status _status;
@@ -46,6 +46,7 @@ namespace vh1981lib {
         vh1981lib::exstring name() { return _name; }
         void setName(vh1981lib::exstring name) { _name = name; }
         void setStatus(Status status);
+        bool isAlive() const { return _status == RUNNING || _id != -1; }
     //@}
 
     private:
@@ -59,6 +60,7 @@ namespace vh1981lib {
         virtual void starting() {}
         virtual void started() {}
         virtual void threadFunc() = 0;
+        virtual void quitRequested() {}
         virtual void finished() {}
 
         static void* coreThreadFunc(void* param);
@@ -67,6 +69,9 @@ namespace vh1981lib {
         bool run();
         void quit();
         void join();
+
+    public:
+        static void sleep(unsigned int msec);
 
     };
 

@@ -1,6 +1,16 @@
+ifeq ($(TARGET), Debug)
 CXXFLAGS = -g -std=c++11
-#TRACE_FLAGS =  -Wl,-v
+TARGET = ad.out
+UNITTEST = unittestd
+endif
+
+ifeq ($(TARGET), Release)
+CXXFLAGS = -std=c++11
 TARGET = a.out
+UNITTEST = unittest
+endif
+
+
 CXX = g++
 AR = ar
 RANLIB = ranlib
@@ -30,12 +40,12 @@ LFLAGS_ALL += -L ../../library/jrtplib/src/
 all : subdirs $(OBJS) $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CXX) $(TRACE_FLAGS) $(CXXFLAGS) -o $@ $(OBJS) $(LFLAGS_ALL) $(LIBS) -I /usr/local/include 
+	$(CXX) $(TRACE_FLAGS) $(CXXFLAGS) -o $@ $(OBJS) $(LFLAGS_ALL) $(LIBS) -I /usr/local/include
 
-unittest : unittest.o $(SRCS_SUB)
-	$(CXX) $(TRACE_FLAGS) $(CXXFLAGS) -o unittest $(SRCS_SUB) unittest.o $(LFLAGS_ALL) $(LIBS) -lgtest -lpthread -I /usr/local/include 
+$(UNITTEST) : unittest.o $(SRCS_SUB)
+	$(CXX) $(TRACE_FLAGS) $(CXXFLAGS) -o $(UNITTEST) $(SRCS_SUB) unittest.o $(LFLAGS_ALL) $(LIBS) -lgtest -lpthread -I /usr/local/include 
 	
 clean::
-	rm -rf $(TARGET) $(OBJS) unittest unittest.o
+	rm -rf $(TARGET) $(OBJS) $(UNITTEST) unittest.o
 
 .PHONY: clean

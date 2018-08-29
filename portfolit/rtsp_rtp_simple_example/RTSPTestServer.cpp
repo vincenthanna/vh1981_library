@@ -4,12 +4,19 @@
 #endif
 
 #include "RTSPTestServer.h"
+#include "Mule.h"
 
 using namespace std;
 using namespace vh1981lib;
 
-RTSPTestServer::RTSPTestServer() : _mule(nullptr), _sessionList()
+RTSPTestServer::RTSPTestServer() : _mulePtr(), _sessionList()
 {
+	_mulePtr.reset();
+}
+
+void RTSPTestServer::setMule(std::shared_ptr<Mule>& mule)
+{
+	_mulePtr = mule;
 }
 
 bool RTSPTestServer::addSession(const std::shared_ptr<Session>& sessionPtr)

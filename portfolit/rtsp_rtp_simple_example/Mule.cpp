@@ -8,6 +8,8 @@
 #include <string.h>
 #include <fcntl.h>
 
+#include "library/basic/exlog.h"
+
 #include "Mule.h"
 #include "RTSPTestServer.h"
 
@@ -32,6 +34,8 @@ void Mule::threadFunc()
 		tv.tv_sec = 1;
 		tv.tv_usec = 0;
 
+		EXCLOG(LOG_INFO, "running... fd_max=%d", fd_max);
+
 		ret = select(fd_max + 1, &readFds, &writeFds, &exceptFds, &tv);
 		if (ret < 0) {
 			//TODO: all disconnect
@@ -39,11 +43,18 @@ void Mule::threadFunc()
 		}
 
 		if (ret == 0) {
-
+			EXCLOG(LOG_INFO, "ret == 0");
 		}
 
 		processAllFds(&readFds, &writeFds, &exceptFds);
+
+		EXCLOG(LOG_INFO, "running...");
 	}
+}
+
+void Mule::quitRequested()
+{
+	_stopped = true;
 }
 
 int Mule::makeAllFds(fd_set* readFds, fd_set* writeFds, fd_set* exceptFds)
@@ -73,6 +84,7 @@ void Mule::processAllFds(fd_set* readFds, fd_set* writeFds, fd_set* exceptFd)
             int fd = session->getSocket();
 
             if (FD_ISSET(fd, readFds)) {
+            	EXCLOG(LOG_INFO, "session %d readfds", session->socket());
                 /**
                  fd를 socket등록할때 서버면 serversocket, 아니면 자기것.
                  session 상태를 확인하고 처리
@@ -106,21 +118,24 @@ void Mule::processAllFds(fd_set* readFds, fd_set* writeFds, fd_set* exceptFd)
             }
 
             if (FD_ISSET(fd, writeFds)) {
+            	EXCLOG(LOG_INFO, "session %d writefds", session->socket());
                 shared_ptr<Packet> packet = session->getSendPacket();
-                size_t remains = packet->dataLen();
-                while (remains) {
-                    int sent = send(fd, &(packet->buffer()[packet->dataLen() - remains]), remains, 0);
-                    if (!sent) {
-                        // FIXME : 연결 끊어진 것에 대한 추가 처리를 진행.
-                        session->setSocket(Session::INVALID_SOCKET);
-                        // TODO: clear all buffers
-                    }
-                    else {
-                        remains -= sent;
-                    }
-                }
+                if (packet.get()) {
+                	size_t remains = packet->dataLen();
+                	while (remains) {
+                		int sent = send(fd, &(packet->buffer()[packet->dataLen() - remains]), remains, 0);
+                		if (!sent) {
+                			// FIXME : 연결 끊어진 것에 대한 추가 처리를 진행.
+                			session->setSocket(Session::INVALID_SOCKET);
+                			// TODO: clear all buffers
+                		}
+                		else {
+                			remains -= sent;
+                		}
+                	}
 
-                FD_CLR(fd, writeFds);
+                	FD_CLR(fd, writeFds);
+                }
             }
 		}
 	}

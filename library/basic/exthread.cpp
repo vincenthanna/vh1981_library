@@ -15,7 +15,7 @@ using namespace std;
 using namespace vh1981lib;
 
 exthread::exthread(const vh1981lib::exstring name) :
-    _id(0),
+    _id(-1),
 	_tid(0),
     _name(name),
     _status(READY)
@@ -50,7 +50,7 @@ void exthread::cleanupThread()
 {
     setStatus(READY);
 
-    _id = 0;
+    _id = -1;
 }
 
 void exthread::_coreThreadFunc()
@@ -78,7 +78,9 @@ bool exthread::run()
 
 void exthread::quit()
 {
-
+	if (isAlive()) {
+		quitRequested();
+	}
 }
 
 void exthread::join()
@@ -100,4 +102,12 @@ void* exthread::coreThreadFunc(void* param)
     exthread* thread = reinterpret_cast<exthread*>(param);
     thread->_coreThreadFunc();
     return 0;
+}
+
+void exthread::sleep(unsigned int msec)
+{
+    struct timespec ts_sleep, ts_remaining;
+    ts_sleep.tv_sec  = msec / 1000;
+    ts_sleep.tv_nsec = (msec % 1000) * 1000000;
+    ::nanosleep(&ts_sleep, &ts_remaining);
 }

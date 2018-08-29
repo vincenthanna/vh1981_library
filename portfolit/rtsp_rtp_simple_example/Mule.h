@@ -43,6 +43,7 @@ namespace vh1981lib {
     //@{
     private:
         void threadFunc();
+        virtual void quitRequested();
     //@}
 
 
