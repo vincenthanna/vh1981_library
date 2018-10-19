@@ -1,4 +1,10 @@
-#include "player.h"
+#ifndef EXLOG_NAME
+    #undef EXLOG_NAME
+    #define EXLOG_NAME "Player"
+#endif
+
+
+#include "Player.h"
 
 #include "library/basic/extools.h"
 #include "library/basic/exlog.h"
@@ -23,7 +29,15 @@ extern "C"
 
 };
 
+extern "C"
+{
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_thread.h>
+}
+
 #include "library/basic/exlog.h"
+
+#include "SDLDisplay.h"
 
 using namespace vh1981lib;
 
@@ -83,31 +97,35 @@ int Player::decode_packet(int *got_frame, int cached)
                    cached ? "(cached)" : "", frame->coded_picture_number, frame->pkt_size, \
                    frame->format,frame->width, frame->height);
 
-//            exstring str = "linesize:";
-//            for (int i = 0; i < 8; i++) {
-//                str.appendf("%d ", frame->linesize[i]);
-//            }
 
-//            str += " buf : ";
-//            for (int i = 0; i < AV_NUM_DATA_POINTERS; i++) {
-//                str.appendf("%p ", frame->data[i]);
-//            }
 
-//            str.append("\n");
-//            EXCLOG(LOG_INFO, str);
-            using namespace std;
-            cout << "srcformat" << frame->format << endl;
-            AVFrame* convertedFrame = av_frame_alloc();
+            // FIXME: todo
 
-            av_frame_copy_props(convertedFrame, frame);
+            AVPicture pict;
+            pict.data[0] = yPlane;
+            pict.data[1] = uPlane;
+            pict.data[2] = vPlane;
+            pict.linesize[0] = _video_dec_ctx->width;
+            pict.linesize[1] = uvPitch;
+            pict.linesize[2] = uvPitch;
 
-            convertYuvToRgb(frame, convertedFrame, AV_PIX_FMT_ARGB);
-            cout << "dstformat" << convertedFrame->format << endl;
-            writeJPEG(convertedFrame);
+            //EXCLOG(LOG_INFO, "TRACE");
+
+            // Convert the image into YUV format that SDL uses
+            sws_scale(sws_ctx, (uint8_t const * const *) frame->data,
+                    frame->linesize, 0, _video_dec_ctx->height, pict.data,
+                    pict.linesize);
+            //EXCLOG(LOG_INFO, "TRACE");
+
+            SDLDisplay::get()->updateTexture(yPlane, _video_dec_ctx->width, uPlane, uvPitch, vPlane, uvPitch);
+
+            //EXCLOG(LOG_INFO, "TRACE");
+
+
             for (auto listener : _playerListenerList) {
-                listener->FrameReady(convertedFrame);
+                listener->FrameReady(frame);
             }
-            av_frame_free(&convertedFrame);
+            //EXCLOG(LOG_INFO, "TRACE");
         }
     }
     return decoded;
@@ -231,6 +249,33 @@ void Player::play(const char* filename)
             goto end;
         }
     }
+
+
+    SDLDisplay::get()->createDisplay(_video_dec_ctx->width, _video_dec_ctx->height);
+
+    // initialize SWS context for software scaling
+    sws_ctx = sws_getContext(_video_dec_ctx->width, _video_dec_ctx->height,
+            _video_dec_ctx->pix_fmt, _video_dec_ctx->width, _video_dec_ctx->height,
+            PIX_FMT_YUV420P,
+            SWS_BILINEAR,
+            NULL,
+            NULL,
+            NULL);
+
+    // set up YV12 pixel array (12 bits per pixel)
+    yPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height;
+    uvPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height / 4;
+    yPlane = (Uint8*)malloc(yPlaneSz);
+    uPlane = (Uint8*)malloc(uvPlaneSz);
+    vPlane = (Uint8*)malloc(uvPlaneSz);
+    if (!yPlane || !uPlane || !vPlane) {
+        fprintf(stderr, "Could not allocate pixel buffers - exiting\n");
+        exit(1);
+    }
+    uvPitch = _video_dec_ctx->width / 2;
+
+
+
 
     // dump input information to stderr
     av_dump_format(_fmt_ctx, 0, filename, 0);

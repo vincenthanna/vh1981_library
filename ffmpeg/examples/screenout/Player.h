@@ -20,7 +20,7 @@ extern "C"
 
 };
 
-#include "playerlistener.h"
+#include "PlayerListener.h"
 #include <list>
 #include <memory>
 
@@ -39,6 +39,11 @@ private:
     AVPacket pkt;
     AVFrame *frame;
     list<PlayerListener*> _playerListenerList;
+
+    struct SwsContext* sws_ctx;
+    unsigned char *yPlane, *uPlane, *vPlane;
+    size_t yPlaneSz, uvPlaneSz;
+    int uvPitch;
 
 
 public:
