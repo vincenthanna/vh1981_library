@@ -23,6 +23,7 @@ public:
      */
 public:
     virtual void createDisplay(const int width, const int height);
+    virtual void destroyDisplay();
     virtual void updateTexture(unsigned char* yPlane, size_t yPitch, \
             unsigned char* uPlane, size_t uPitch, \
             unsigned char* vPlane, size_t vPitch);

@@ -47,39 +47,6 @@ Player::Player() : _playerListenerList()
 
 }
 
-bool Player::convertYuvToRgb(const AVFrame* srcFrame, AVFrame* dstFrame, AVPixelFormat dstFmt)
-{
-    struct SwsContext* sws_ctx = nullptr;
-    sws_ctx = sws_getContext(
-                _video_dec_ctx->width,
-                _video_dec_ctx->height,
-                (AVPixelFormat)dstFmt,
-                srcFrame->width,
-                srcFrame->height,
-                (AVPixelFormat)dstFmt,
-                SWS_BILINEAR, nullptr, nullptr, nullptr);
-
-    int num_bytes = avpicture_get_size(dstFmt, _video_dec_ctx->width, _video_dec_ctx->height);
-
-    uint8_t* buffer=(uint8_t *)av_malloc(num_bytes*sizeof(uint8_t));
-
-    int ret = avpicture_fill((AVPicture *)dstFrame, buffer, dstFmt, _video_dec_ctx->width, _video_dec_ctx->height);
-    cout << "avpicture_fill() ret=" << ret << endl;
-
-    dstFrame->width = srcFrame->width;
-    dstFrame->height = srcFrame->height;
-    dstFrame->format = dstFmt;
-
-    cout << __LINE__ << "dst : " << dstFrame->width << " " << dstFrame->height << " " << endl;
-    ret = sws_scale(sws_ctx, srcFrame->data, srcFrame->linesize, 0, _video_dec_ctx->height,
-              ((AVPicture*)dstFrame)->data, ((AVPicture*)dstFrame)->linesize);
-
-    cout << "sws_scale() return [" << ret << "]" << endl;
-
-
-}
-
-
 int Player::decode_packet(int *got_frame, int cached)
 {
     int ret = 0;
@@ -102,12 +69,12 @@ int Player::decode_packet(int *got_frame, int cached)
             // FIXME: todo
 
             AVPicture pict;
-            pict.data[0] = yPlane;
-            pict.data[1] = uPlane;
-            pict.data[2] = vPlane;
+            pict.data[0] = _yPlane;
+            pict.data[1] = _uPlane;
+            pict.data[2] = _vPlane;
             pict.linesize[0] = _video_dec_ctx->width;
-            pict.linesize[1] = uvPitch;
-            pict.linesize[2] = uvPitch;
+            pict.linesize[1] = _uvPitch;
+            pict.linesize[2] = _uvPitch;
 
             //EXCLOG(LOG_INFO, "TRACE");
 
@@ -117,7 +84,7 @@ int Player::decode_packet(int *got_frame, int cached)
                     pict.linesize);
             //EXCLOG(LOG_INFO, "TRACE");
 
-            SDLDisplay::get()->updateTexture(yPlane, _video_dec_ctx->width, uPlane, uvPitch, vPlane, uvPitch);
+            SDLDisplay::get()->updateTexture(_yPlane, _video_dec_ctx->width, _uPlane, _uvPitch, _vPlane, _uvPitch);
 
             //EXCLOG(LOG_INFO, "TRACE");
 
@@ -250,7 +217,6 @@ void Player::play(const char* filename)
         }
     }
 
-
     SDLDisplay::get()->createDisplay(_video_dec_ctx->width, _video_dec_ctx->height);
 
     // initialize SWS context for software scaling
@@ -263,17 +229,16 @@ void Player::play(const char* filename)
             NULL);
 
     // set up YV12 pixel array (12 bits per pixel)
-    yPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height;
-    uvPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height / 4;
-    yPlane = (Uint8*)malloc(yPlaneSz);
-    uPlane = (Uint8*)malloc(uvPlaneSz);
-    vPlane = (Uint8*)malloc(uvPlaneSz);
-    if (!yPlane || !uPlane || !vPlane) {
+    _yPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height;
+    _uvPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height / 4;
+    _yPlane = (Uint8*)malloc(_yPlaneSz);
+    _uPlane = (Uint8*)malloc(_uvPlaneSz);
+    _vPlane = (Uint8*)malloc(_uvPlaneSz);
+    if (!_yPlane || !_uPlane || !_vPlane) {
         fprintf(stderr, "Could not allocate pixel buffers - exiting\n");
         exit(1);
     }
-    uvPitch = _video_dec_ctx->width / 2;
-
+    _uvPitch = _video_dec_ctx->width / 2;
 
 
 

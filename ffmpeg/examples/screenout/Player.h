@@ -41,14 +41,14 @@ private:
     list<PlayerListener*> _playerListenerList;
 
     struct SwsContext* sws_ctx;
-    unsigned char *yPlane, *uPlane, *vPlane;
-    size_t yPlaneSz, uvPlaneSz;
-    int uvPitch;
+    unsigned char *_yPlane, *_uPlane, *_vPlane;
+    size_t _yPlaneSz, _uvPlaneSz;
+    int _uvPitch;
 
 
 public:
     /**
-    @name decoding
+     @name decoding
     */
     //@{
 private:
@@ -73,9 +73,6 @@ public:
     void play(const char* filename);
     void addPlayerListener(const PlayerListener* listener);
     //@}
-
-    bool convertYuvToRgb(const AVFrame* srcFrame, AVFrame* dstFrame, AVPixelFormat dstFmt);
-
 
 public:
 

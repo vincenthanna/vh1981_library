@@ -21,20 +21,11 @@ SDLDisplay::SDLDisplay() : _window(nullptr), _texture(nullptr), _renderer(nullpt
         EXCLOG(LOG_ERROR, "cannot initialize SDL - %s", SDL_GetError());
         assert(false);
     }
-
 }
 
 SDLDisplay::~SDLDisplay()
 {
-    if (_texture) {
-        SDL_DestroyTexture(_texture);
-    }
-    if (_renderer) {
-        SDL_DestroyRenderer(_renderer);
-    }
-    if (_window) {
-        SDL_DestroyWindow(_window);
-    }
+    destroyDisplay();
     SDL_Quit();
 }
 
@@ -59,6 +50,22 @@ void SDLDisplay::createDisplay(const int width, const int height)
     if (!_texture) {
         std::cout << "SDL_CreateTexture Error: " << SDL_GetError() << std::endl;
         assert(false);
+    }
+}
+
+void SDLDisplay::destroyDisplay()
+{
+    if (_texture) {
+        SDL_DestroyTexture(_texture);
+        _texture = nullptr;
+    }
+    if (_renderer) {
+        SDL_DestroyRenderer(_renderer);
+        _renderer = nullptr;
+    }
+    if (_window) {
+        SDL_DestroyWindow(_window);
+        _window = nullptr;
     }
 }
 

@@ -51,8 +51,6 @@ int main(int argc, char** argv)
 
     SDLDisplay* display = SDLDisplay::get();
 
-
-
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <input file>\n", argv[0]);
         exit(0);
