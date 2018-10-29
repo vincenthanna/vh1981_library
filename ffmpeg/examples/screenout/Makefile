@@ -9,7 +9,7 @@ LIBS = -lvh1981_basic
 
 SUBDIRS += library/basic
 
-OBJS = Player.o main.o SDLDisplay.o
+OBJS = Player.o main.o SDLDisplay.o StreamQueue.o
 LIBS += -lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale -lavfilter -lswresample -lavdevice -lrt -lpthread -ldl -lSDL2 # linux
 #LIBS = -lavutil -lavformat -lavcodec -lz -lavutil -lm -lswscale -lavfilter -lswresample -lavdevice -lpthread -ldl # OSX
 

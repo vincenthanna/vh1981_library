@@ -33,6 +33,9 @@ private:
     SDL_Renderer* _renderer;
     SDL_Texture* _texture;
 
+private:
+    SDL_AudioSpec   _wanted_spec, _spec;
+
 };
 
 #endif // SDLDISPLAY_H
