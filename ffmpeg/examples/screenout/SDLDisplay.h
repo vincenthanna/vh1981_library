@@ -23,6 +23,8 @@ public:
      */
 public:
     virtual void createDisplay(const int width, const int height);
+    virtual void openAudio(int sampleRate, int format, int channels, \
+            int samples, SDL_AudioCallback callback, void* userData);
     virtual void destroyDisplay();
     virtual void updateTexture(unsigned char* yPlane, size_t yPitch, \
             unsigned char* uPlane, size_t uPitch, \

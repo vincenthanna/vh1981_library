@@ -35,6 +35,7 @@ class Player
 {
 public:
     Player();
+    virtual ~Player();
 
 private:
     AVFormatContext* _fmt_ctx;
@@ -59,6 +60,7 @@ private:
     uint8_t* _audio_pkt_data;
     int _audio_pkt_size;
     AVFrame* _aFrame;
+    bool _needAudioConverting;
 
     SwrContext *_audio_swr;
 
@@ -73,6 +75,8 @@ private:
     unsigned int _audio_buf_size;
     unsigned int _audio_buf_index;
 
+    StreamQueue _audioStreamQueue;
+
 
 public:
     /**
@@ -80,7 +84,7 @@ public:
     */
     //@{
 private:
-    int decode_packet(int *got_frame, int cached);
+    int decode_packet(int *got_frame);
     int open_codec_context(int *stream_idx, AVFormatContext *fmt_ctx, enum AVMediaType type);
     //@}
 
@@ -102,36 +106,7 @@ public:
     //@}
 
 public:
-
     void audioCallback (unsigned char* stream, int len);
-    int audio_decode_frame(uint8_t *audio_buf, int buf_size);
-
-#if 0
-    class PacketQueue {
-    public:
-        AVPacketList *_first_pkt, *_last_pkt;
-        int _nb_packets;
-        int _size;
-        SDL_mutex *_mutex;
-        SDL_cond *_cond;
-        bool _quit;
-
-
-
-    public:
-        PacketQueue();
-        virtual ~PacketQueue() {}
-
-        void init();
-        int put(AVPacket *pkt);
-        int get(AVPacket *pkt, int block);
-    };
-
-    PacketQueue _audioPacketQueue;
-#endif
-
-    StreamQueue _audioStreamQueue;
-
 };
 
 void audio_callback (void *userdata, unsigned char* stream, int len);

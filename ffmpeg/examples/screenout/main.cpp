@@ -62,5 +62,8 @@ int main(int argc, char** argv)
 
     player.play(filename);
 
+    SDLDisplay::get()->destroyDisplay();
+    SDL_Quit();
+
     return 0;
 }

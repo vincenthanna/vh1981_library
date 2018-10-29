@@ -69,6 +69,26 @@ void SDLDisplay::destroyDisplay()
     }
 }
 
+void SDLDisplay::openAudio(int sampleRate, int format, int channels, \
+        int samples, SDL_AudioCallback callback, void* userData)
+{
+    SDL_AudioSpec specSrc, spec;
+    specSrc.freq = sampleRate;
+    specSrc.format = AUDIO_S16SYS;
+    specSrc.channels = channels;
+    specSrc.silence = 0;
+    specSrc.samples = samples;
+    specSrc.callback = callback;
+    specSrc.userdata = userData;
+    if(SDL_OpenAudio(&specSrc, &spec) < 0) {
+        EXCLOG(LOG_FATAL, "SDL_OpenAudio: %s", SDL_GetError());
+        exit(-1);
+    }
+
+    // SDL audio 동작 start. audio_callback이 호출되기 시작한다.
+    SDL_PauseAudio(0); //< finally starts the audio device. it plays silence if it doesn't get data
+}
+
 void SDLDisplay::updateTexture(unsigned char* yPlane, size_t yPitch, \
         unsigned char* uPlane, size_t uPitch, \
         unsigned char* vPlane, size_t vPitch)

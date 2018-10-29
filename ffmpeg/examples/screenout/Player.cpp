@@ -41,6 +41,7 @@ extern "C"
 #include "SDLDisplay.h"
 
 #define SDL_AUDIO_BUFFER_SIZE 2048
+#define AUDIO_SAMPLES 2048
 #define MAX_AUDIO_FRAME_SIZE 192000
 
 using namespace vh1981lib;
@@ -50,16 +51,25 @@ Player::Player() : _playerListenerList()
     , _audio_dec_ctx(nullptr)
     ,_sws_ctx(nullptr)
 //    ,_audioPacketQueue()
+    ,_audio_swr(nullptr)
     ,_audio_buf_size(0)
     ,_audio_buf_index(0)
     ,_audio_pkt_data(nullptr)
     ,_audio_pkt_size(0)
     ,_audioStreamQueue(1024 * 128)
+    ,_needAudioConverting(false)
 {
 
 }
 
-int Player::decode_packet(int *got_frame, int cached)
+Player::~Player()
+{
+    if (_audio_swr) {
+        swr_free(&_audio_swr);
+    }
+}
+
+int Player::decode_packet(int *got_frame)
 {
     int ret = 0;
     int decoded = _pkt.size;
@@ -87,18 +97,12 @@ int Player::decode_packet(int *got_frame, int cached)
             pict.linesize[1] = _uvPitch;
             pict.linesize[2] = _uvPitch;
 
-            //EXCLOG(LOG_INFO, "TRACE");
-
             // Convert the image into YUV format that SDL uses
             sws_scale(_sws_ctx, (uint8_t const * const *) _frame->data,
                     _frame->linesize, 0, _video_dec_ctx->height, pict.data,
                     pict.linesize);
-            //EXCLOG(LOG_INFO, "TRACE");
 
             SDLDisplay::get()->updateTexture(_yPlane, _video_dec_ctx->width, _uPlane, _uvPitch, _vPlane, _uvPitch);
-
-            //EXCLOG(LOG_INFO, "TRACE");
-
 
             for (auto listener : _playerListenerList) {
                 listener->FrameReady(_frame);
@@ -111,47 +115,42 @@ int Player::decode_packet(int *got_frame, int cached)
         int gotFrame = 0;
         int len = avcodec_decode_audio4(_audio_dec_ctx, _aFrame, &gotFrame, &_pkt);
         if (len >= 0) {
-#if 1
+
             if (got_frame) {
 
-//#define AUDIO_WRITE_TO_FILE
+                if (_needAudioConverting) {
+                    //#define AUDIO_WRITE_TO_FILE
 #ifdef AUDIO_WRITE_TO_FILE
-                static int audio_frame_count = 0;
-                static FILE* audio_dst_file = nullptr;
-                if (audio_dst_file == nullptr) {
-                    audio_dst_file = fopen("audioout.pcm", "a+");
+                    static int audio_frame_count = 0;
+                    static FILE* audio_dst_file = nullptr;
+                    if (audio_dst_file == nullptr) {
+                        audio_dst_file = fopen("audioout.pcm", "a+");
+                    }
+#endif
+
+                    int samples = swr_convert(_audio_swr, _audio_outputBuffer, _aFrame->nb_samples, \
+                            (const uint8_t **)_aFrame->extended_data, _aFrame->nb_samples);
+
+                    int dst_bufsize = av_samples_get_buffer_size(&_audio_dst_linesize, _audio_dec_ctx->channels, samples, AV_SAMPLE_FMT_S16, 1);
+#ifdef AUDIO_WRITE_TO_FILE
+                    fwrite(_audio_outputBuffer[0], 1, dst_bufsize, audio_dst_file);
+                    fclose(audio_dst_file);
+                    audio_dst_file = nullptr;
+#endif
+
+                    while (!_audioStreamQueue.put(_audio_outputBuffer[0], dst_bufsize)) {
+                        exthread::sleep(10);
+                    }
                 }
-#endif
-
-                int samples = swr_convert(_audio_swr, _audio_outputBuffer, _aFrame->nb_samples, \
-                        (const uint8_t **)_aFrame->extended_data, _aFrame->nb_samples);
-
-                int dst_bufsize = av_samples_get_buffer_size(&_audio_dst_linesize, _audio_dec_ctx->channels, samples, AV_SAMPLE_FMT_S16, 1);
-#ifdef AUDIO_WRITE_TO_FILE
-                fwrite(_audio_outputBuffer[0], 1, dst_bufsize, audio_dst_file);
-                fclose(audio_dst_file);
-                audio_dst_file = nullptr;
-#endif
-                //EXCLOG(LOG_INFO, "audio data size : %d", dst_bufsize);
-
-                while (!_audioStreamQueue.put(_audio_outputBuffer[0], dst_bufsize)) {
-                    exthread::sleep(10);
+                else {
+                    int dataSize = av_samples_get_buffer_size(NULL, _audio_dec_ctx->channels, _aFrame->nb_samples, \
+                            _audio_dec_ctx->sample_fmt, 1);
+                    while (!_audioStreamQueue.put(_aFrame->data[0], dataSize)) {
+                        exthread::sleep(10);
+                    }
                 }
             }
-#endif
-
-#if 0
-            if (got_frame) {
-                // SDL out only
-                int dataSize = av_samples_get_buffer_size(NULL, _audio_dec_ctx->channels, _aFrame->nb_samples, \
-                        _audio_dec_ctx->sample_fmt, 1);
-                while (!_audioStreamQueue.put(_aFrame->data[0], dataSize)) {
-                    exthread::sleep(10);
-                }
-            }
-#endif
         }
-
     }
     return decoded;
 }
@@ -262,6 +261,7 @@ void Player::play(const char* filename)
         return;
     }
 
+    // video codec init :
     if (open_codec_context(&_video_stream_idx, _fmt_ctx, AVMEDIA_TYPE_VIDEO) >= 0) {
         _video_stream = _fmt_ctx->streams[_video_stream_idx];
         _video_dec_ctx = _video_stream->codec;
@@ -295,6 +295,7 @@ void Player::play(const char* filename)
             NULL,
             NULL);
 
+
     // set up YV12 pixel array (12 bits per pixel)
     _yPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height;
     _uvPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height / 4;
@@ -308,43 +309,31 @@ void Player::play(const char* filename)
     _uvPitch = _video_dec_ctx->width / 2;
 
 
-
-
     // SDL AUDIO INIT:
-    SDL_AudioSpec specSrc, spec;
-    specSrc.freq = _audio_dec_ctx->sample_rate;
-    specSrc.format = AUDIO_S16SYS;
-    specSrc.channels = _audio_dec_ctx->channels;
-    specSrc.silence = 0;
-    specSrc.samples = SDL_AUDIO_BUFFER_SIZE;
-    specSrc.callback = audio_callback;
-    specSrc.userdata = this;
-    if(SDL_OpenAudio(&specSrc, &spec) < 0) {
-      //fprintf(stderr, "SDL_OpenAudio: %s\n", SDL_GetError());
-        EXCLOG(LOG_FATAL, "SDL_OpenAudio: %s", SDL_GetError());
-        exit(-1);
+    SDLDisplay::get()->openAudio(_audio_dec_ctx->sample_rate, AUDIO_S16SYS, _audio_dec_ctx->channels, \
+            AUDIO_SAMPLES, audio_callback, this);
+
+    if (AV_SAMPLE_FMT_S16 != _audio_dec_ctx->sample_fmt) {
+        _needAudioConverting = true;
     }
 
-    // SDL audio 동작 start. audio_callback이 호출되기 시작한다.
-    SDL_PauseAudio(0); //< finally starts the audio device. it plays silence if it doesn't get data
+    if (_needAudioConverting) {
+        // audio resampling init:
+        _audio_swr = swr_alloc();
+        av_opt_set_int(_audio_swr, "in_channel_layout",  _audio_dec_ctx->channel_layout, 0);
+        av_opt_set_int(_audio_swr, "out_channel_layout", _audio_dec_ctx->channel_layout,  0);
+        av_opt_set_int(_audio_swr, "in_sample_rate",     _audio_dec_ctx->sample_rate, 0);
+        av_opt_set_int(_audio_swr, "out_sample_rate",    _audio_dec_ctx->sample_rate, 0);
+        av_opt_set_sample_fmt(_audio_swr, "in_sample_fmt",  _audio_dec_ctx->sample_fmt, 0);
+        av_opt_set_sample_fmt(_audio_swr, "out_sample_fmt", AV_SAMPLE_FMT_S16,  0);
+        swr_init(_audio_swr);
 
-
-
-    // audio resampling init:
-    _audio_swr = swr_alloc();
-    av_opt_set_int(_audio_swr, "in_channel_layout",  _audio_dec_ctx->channel_layout, 0);
-    av_opt_set_int(_audio_swr, "out_channel_layout", _audio_dec_ctx->channel_layout,  0);
-    av_opt_set_int(_audio_swr, "in_sample_rate",     _audio_dec_ctx->sample_rate, 0);
-    av_opt_set_int(_audio_swr, "out_sample_rate",    _audio_dec_ctx->sample_rate, 0);
-    av_opt_set_sample_fmt(_audio_swr, "in_sample_fmt",  _audio_dec_ctx->sample_fmt, 0);
-    av_opt_set_sample_fmt(_audio_swr, "out_sample_fmt", AV_SAMPLE_FMT_S16,  0);
-    swr_init(_audio_swr);
-
-    ret = av_samples_alloc_array_and_samples(&_audio_outputBuffer, &_audio_dst_linesize, _audio_dec_ctx->channels,
-            _audio_dec_ctx->sample_rate, AV_SAMPLE_FMT_S16, 0);
-    if (ret < 0) {
-        fprintf(stderr, "Could not allocate destination samples\n");
-        goto end;
+        ret = av_samples_alloc_array_and_samples(&_audio_outputBuffer, &_audio_dst_linesize, _audio_dec_ctx->channels,
+                _audio_dec_ctx->sample_rate, AV_SAMPLE_FMT_S16, 0);
+        if (ret < 0) {
+            fprintf(stderr, "Could not allocate destination samples\n");
+            goto end;
+        }
     }
 
     // dump input information to stderr
@@ -374,7 +363,7 @@ void Player::play(const char* filename)
         AVPacket orig_pkt = _pkt;
         //EXCLOG(LOG_INFO, "stream index:%u pts:%llu size:%d\n", _pkt.stream_index, _pkt.pts, _pkt.size);
         do {
-            ret = decode_packet(&got_frame, 0);
+            ret = decode_packet(&got_frame);
             if (ret < 0)
                 break;
             _pkt.data += ret;
@@ -387,7 +376,7 @@ void Player::play(const char* filename)
     _pkt.data = nullptr;
     _pkt.size = 0;
     do {
-        decode_packet(&got_frame, 1);
+        decode_packet(&got_frame);
     } while (got_frame);
     EXCLOG(LOG_INFO, "decoding finished.");
 end:
@@ -412,154 +401,7 @@ void Player::audioCallback(unsigned char* stream, int len)
     //EXCLOG(LOG_INFO, "audio stream len=%d finished!", len);
 }
 
-#if 0
-int Player::audio_decode_frame(uint8_t *audio_buf, int buf_size)
-{
-//    static AVPacket pkt;
-//    static uint8_t *audio_pkt_data = NULL;
-//    static int audio_pkt_size = 0;
-//    static AVFrame frame;
-
-    int len1, data_size = 0;
-
-    for(;;) {
-        while(_audio_pkt_size > 0) {
-            int got_frame = 0;
-            len1 = avcodec_decode_audio4(_audio_dec_ctx, _aFrame, &got_frame, &_audioPkt);
-            if(len1 < 0) {
-                /* if error, skip frame */
-                _audio_pkt_size = 0;
-                break;
-            }
-            _audio_pkt_data += len1;
-            _audio_pkt_size -= len1;
-            data_size = 0;
-            if(got_frame) {
-                data_size = av_samples_get_buffer_size(NULL,
-                        _audio_dec_ctx->channels,
-                        _aFrame->nb_samples,
-                        _audio_dec_ctx->sample_fmt,
-                        1);
-                assert(data_size <= buf_size);
-                memcpy(audio_buf, _aFrame->data[0], data_size);
-            }
-            if(data_size <= 0) {
-                /* No data yet, get more frames */
-                continue;
-            }
-            /* We have data, return it and come back for more later */
-            return data_size;
-        }
-
-//        if(_audioPkt.data) {
-//            av_free_packet(&_audioPkt);
-//        }
-
-//        if(_quit) {
-//            return -1;
-//        }
-
-        if(_audioPacketQueue.get(&_audioPkt, 1) < 0) {
-            return -1;
-        }
-        _audio_pkt_data = _audioPkt.data;
-        _audio_pkt_size = _audioPkt.size;
-    }
-}
-#endif
-
-
-#if 0
 /////////////////////////////////////////////////////////////////////////////////////////////
-
-
-Player::PacketQueue::PacketQueue() : _first_pkt(nullptr)
-    ,_last_pkt(nullptr)
-    ,_nb_packets(0)
-    ,_size(0)
-    ,_mutex(nullptr)
-    ,_cond(nullptr)
-    ,_quit(false)
-{
-
-}
-
-void Player::PacketQueue::init()
-{
-    _mutex = SDL_CreateMutex();
-    _cond = SDL_CreateCond();
-}
-
-int Player::PacketQueue::put(AVPacket *pkt) {
-
-    AVPacketList *pkt1;
-    if(av_dup_packet(pkt) < 0) {
-        return -1;
-    }
-    pkt1 = (AVPacketList*)av_malloc(sizeof(AVPacketList));
-    if (!pkt1)
-        return -1;
-    pkt1->pkt = *pkt;
-    pkt1->next = NULL;
-
-
-    SDL_LockMutex(_mutex);
-
-    if (!_last_pkt) {
-        _first_pkt = pkt1;
-    }
-    else {
-        _last_pkt->next = pkt1;
-    }
-
-    _last_pkt = pkt1;
-    _nb_packets++;
-    _size += pkt1->pkt.size;
-    SDL_CondSignal(_cond);
-    SDL_UnlockMutex(_mutex);
-
-    return 0;
-}
-
-int Player::PacketQueue::get(AVPacket *pkt, int block) {
-  AVPacketList *pkt1;
-  int ret;
-
-  SDL_LockMutex(_mutex);
-
-  for(;;) {
-
-      if(_quit) {
-          ret = -1;
-          break;
-      }
-
-      pkt1 = _first_pkt;
-      if (pkt1) {
-          _first_pkt = pkt1->next;
-          if (!_first_pkt) {
-              _last_pkt = nullptr;
-          }
-          _nb_packets--;
-          _size -= pkt1->pkt.size;
-          *pkt = pkt1->pkt;
-          av_free(pkt1);
-          ret = 1;
-          break;
-      } else if (!block) {
-          ret = 0;
-          break;
-      } else {
-          SDL_CondWait(_cond, _mutex);
-      }
-  }
-  SDL_UnlockMutex(_mutex);
-  return ret;
-}
-#endif
-
-/////////////////////////////////////////////////////////////////////////////////////////////
-
 
 void audio_callback (void *userdata, unsigned char* stream, int len)
 {
@@ -567,3 +409,4 @@ void audio_callback (void *userdata, unsigned char* stream, int len)
     Player* player = (Player*)userdata;
     player->audioCallback(stream, len);
 }
+
