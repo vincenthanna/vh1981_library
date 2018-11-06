@@ -30,6 +30,9 @@ extern "C"
 
 };
 
+#define FF_REFRESH_EVENT    (SDL_USEREVENT)
+#define FF_QUIT_EVENT       (SDL_USEREVENT + 1)
+
 extern "C"
 {
 #include <SDL2/SDL.h>
@@ -44,13 +47,16 @@ extern "C"
 #define AUDIO_SAMPLES 2048
 #define MAX_AUDIO_FRAME_SIZE 192000
 
+const int vInterval = 40;
+
 using namespace vh1981lib;
 
 Player::Player() : _playerListenerList()
-    , _fmt_ctx(nullptr)
-    , _audio_dec_ctx(nullptr)
+    ,_quit(false)
+    ,_fmt_ctx(nullptr)
+    ,_video_stream_idx(-1)
+    ,_audio_dec_ctx(nullptr)
     ,_sws_ctx(nullptr)
-//    ,_audioPacketQueue()
     ,_audio_swr(nullptr)
     ,_audio_buf_size(0)
     ,_audio_buf_index(0)
@@ -69,55 +75,13 @@ Player::~Player()
     }
 }
 
-int Player::decode_packet(int *got_frame)
+void Player::decode_audio(AVCodecContext* ctx, AVPacket packet, AVFrame* frame)
 {
-    int ret = 0;
-    int decoded = _pkt.size;
-    if (_pkt.stream_index == _video_stream_idx) {
-
-        /* decode video frame */
-        ret = avcodec_decode_video2(_video_dec_ctx, _frame, got_frame, &_pkt);
-        if (ret < 0) {
-            EXCLOG(LOG_ERROR, "Error decoding video frame");
-            return ret;
-        }
-
-        if (*got_frame) {
-            //EXCLOG(LOG_INFO, "video_frame%s coded_n:%d size:%d format:%d (%d X %d)", \
-                   cached ? "(cached)" : "", _frame->coded_picture_number, _frame->pkt_size, \
-                   _frame->format, _frame->width, _frame->height);
-
-            // FIXME: todo
-
-            AVPicture pict;
-            pict.data[0] = _yPlane;
-            pict.data[1] = _uPlane;
-            pict.data[2] = _vPlane;
-            pict.linesize[0] = _video_dec_ctx->width;
-            pict.linesize[1] = _uvPitch;
-            pict.linesize[2] = _uvPitch;
-
-            // Convert the image into YUV format that SDL uses
-            sws_scale(_sws_ctx, (uint8_t const * const *) _frame->data,
-                    _frame->linesize, 0, _video_dec_ctx->height, pict.data,
-                    pict.linesize);
-
-            SDLDisplay::get()->updateTexture(_yPlane, _video_dec_ctx->width, _uPlane, _uvPitch, _vPlane, _uvPitch);
-
-            for (auto listener : _playerListenerList) {
-                listener->FrameReady(_frame);
-            }
-            //EXCLOG(LOG_INFO, "TRACE");
-        }
-    }
-    else if (_pkt.stream_index == _audio_stream_idx) {
-
-        int gotFrame = 0;
-        int len = avcodec_decode_audio4(_audio_dec_ctx, _aFrame, &gotFrame, &_pkt);
+    int gotFrame = 0;
+    while(packet.size) {
+        int len = avcodec_decode_audio4(ctx, frame, &gotFrame, &packet);
         if (len >= 0) {
-
-            if (got_frame) {
-
+            if (gotFrame) {
                 if (_needAudioConverting) {
                     //#define AUDIO_WRITE_TO_FILE
 #ifdef AUDIO_WRITE_TO_FILE
@@ -149,8 +113,96 @@ int Player::decode_packet(int *got_frame)
                         exthread::sleep(10);
                     }
                 }
+            } //if (gotFrame)
+
+            packet.size -= len;
+            packet.data += len;
+        }
+        else {
+            break;
+        }
+    }
+}
+
+void Player::decode_video(AVCodecContext* ctx, AVPacket packet, AVFrame* frame)
+{
+    int gotFrame = 0;
+    while(packet.size) {
+        int len = avcodec_decode_video2(_video_dec_ctx, _frame, &gotFrame, &packet);
+        if (len >= 0) {
+            if (gotFrame) {
+                //EXCLOG(LOG_INFO, "video_frame%s coded_n:%d size:%d format:%d (%d X %d)", \
+                cached ? "(cached)" : "", _frame->coded_picture_number, _frame->pkt_size, \
+                _frame->format, _frame->width, _frame->height);
+
+                // FIXME: todo
+
+                AVPicture pict;
+
+                while(_vpq.getEmpty() == nullptr) {
+                    exthread::sleep(10);
+                }
+
+                VideoPicture* pic = _vpq.getEmpty();
+
+                pict.data[0] = pic->_yPlane;
+                pict.data[1] = pic->_uPlane;
+                pict.data[2] = pic->_vPlane;
+                pict.linesize[0] = pic->_yPitch;
+                pict.linesize[1] = pic->_uPitch;
+                pict.linesize[2] = pic->_vPitch;
+
+                // Convert the image into YUV format that SDL uses
+                sws_scale(_sws_ctx, (uint8_t const * const *) _frame->data,
+                        _frame->linesize, 0, _video_dec_ctx->height, pict.data,
+                        pict.linesize);
+
+                _vpq.push();
+
+#if 0
+                //SDLDisplay::get()->updateTexture(_yPlane, _video_dec_ctx->width, _uPlane, _uvPitch, _vPlane, _uvPitch);
+                SDLDisplay::get()->updateTexture(pic->_yPlane, pic->_yPitch, pic->_uPlane, pic->_uPitch, pic->_vPlane, pic->_vPitch);
+
+                _vpq.pop();
+#endif
+
+                for (auto listener : _playerListenerList) {
+                    listener->FrameReady(_frame);
+                }
+                //EXCLOG(LOG_INFO, "TRACE");
             }
         }
+
+        packet.size -= len;
+        packet.data += len;
+    }
+}
+
+void Player::displayVideo()
+{
+    if (_vpq.size()) {
+        VideoPicture* pic = _vpq.peek();
+
+        //SDLDisplay::get()->updateTexture(_yPlane, _video_dec_ctx->width, _uPlane, _uvPitch, _vPlane, _uvPitch);
+        SDLDisplay::get()->updateTexture(pic->_yPlane, pic->_yPitch, pic->_uPlane, pic->_uPitch, pic->_vPlane, pic->_vPitch);
+
+        _vpq.pop();
+
+        EXCLOG(LOG_INFO, "video show!");
+    }
+}
+
+//int Player::decode_packet(int *got_frame)
+int Player::decode_packet(AVPacket packet)
+{
+    int ret = 0;
+    int decoded = _pkt.size;
+    if (_pkt.stream_index == _video_stream_idx) {
+        _videoPacketList.push_back(packet);
+    }
+    else if (_pkt.stream_index == _audio_stream_idx) {
+        decode_audio(_audio_dec_ctx, packet, _aFrame);
+        av_free_packet(&packet);
     }
     return decoded;
 }
@@ -297,16 +349,12 @@ void Player::play(const char* filename)
 
 
     // set up YV12 pixel array (12 bits per pixel)
-    _yPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height;
-    _uvPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height / 4;
-    _yPlane = (Uint8*)malloc(_yPlaneSz);
-    _uPlane = (Uint8*)malloc(_uvPlaneSz);
-    _vPlane = (Uint8*)malloc(_uvPlaneSz);
-    if (!_yPlane || !_uPlane || !_vPlane) {
-        fprintf(stderr, "Could not allocate pixel buffers - exiting\n");
-        exit(1);
+    {
+        int yPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height;
+        int uvPlaneSz = _video_dec_ctx->width * _video_dec_ctx->height / 4;
+        int uvPitch = _video_dec_ctx->width / 2;
+        _vpq.init(yPlaneSz, uvPlaneSz, uvPlaneSz, _video_dec_ctx->width, uvPitch, uvPitch);
     }
-    _uvPitch = _video_dec_ctx->width / 2;
 
 
     // SDL AUDIO INIT:
@@ -353,6 +401,13 @@ void Player::play(const char* filename)
         goto end;
     }
 
+    // start video thread:
+    _videoThreadTid = SDL_CreateThread(video_thread, "video thread", this);
+
+    // start player thread:
+    _playerThreadTid = SDL_CreateThread(player_thread, "player main thread", this);
+
+#if 0
     // initialize packet, set data to NULL, let the demuxer fill it
     av_init_packet(&_pkt);
     _pkt.data = nullptr;
@@ -360,25 +415,50 @@ void Player::play(const char* filename)
 
     // read frames from the file
     while (av_read_frame(_fmt_ctx, &_pkt) >= 0) {
-        AVPacket orig_pkt = _pkt;
         //EXCLOG(LOG_INFO, "stream index:%u pts:%llu size:%d\n", _pkt.stream_index, _pkt.pts, _pkt.size);
-        do {
-            ret = decode_packet(&got_frame);
-            if (ret < 0)
-                break;
-            _pkt.data += ret;
-            _pkt.size -= ret;
-        } while (_pkt.size > 0);
-        av_free_packet(&orig_pkt);
+        ret = decode_packet(_pkt);
     }
 
-    // flush cached frames
-    _pkt.data = nullptr;
-    _pkt.size = 0;
-    do {
-        decode_packet(&got_frame);
-    } while (got_frame);
-    EXCLOG(LOG_INFO, "decoding finished.");
+    // video / audio 프레임이 모두 처리될 때까지 대기한다.
+    while (_videoPacketList.size() || _audioStreamQueue.dataSize()) {
+        exthread::sleep(100);
+    }
+#endif
+
+#if 0
+    scheduleRefresh(vInterval);
+
+    SDL_Event event;
+    while(true) {
+        SDL_WaitEvent(&event);
+        switch(event.type) {
+        case FF_QUIT_EVENT:
+        case SDL_QUIT:
+            SDL_Quit();
+            break;
+        case FF_REFRESH_EVENT:
+            videoRefreshTimer();
+            break;
+        default:
+            break;
+        }
+        exthread::sleep(10);
+    }
+#endif
+    while (true) {
+        int interval = vInterval;
+        if (_vpq.full()) {
+            interval = interval * 3 / 4;
+        }
+        exthread::sleep(interval);
+        int waitCnt = 20;
+        while(!_vpq.size() && waitCnt) {
+            exthread::sleep(1);
+            waitCnt--;
+        }
+        displayVideo();
+    }
+
 end:
     return;
 }
@@ -396,9 +476,77 @@ void Player::addPlayerListener(const PlayerListener* listener)
 void Player::audioCallback(unsigned char* stream, int len)
 {
     while(!_audioStreamQueue.get(stream, len)) {
-        exthread::sleep(10);
+        exthread::sleep(30);
     }
     //EXCLOG(LOG_INFO, "audio stream len=%d finished!", len);
+}
+
+void Player::videoThread()
+{
+    while(!isQuit()) {
+        if (_videoPacketList.size()) {
+            /* decode video frame */
+            AVPacket pkt = _videoPacketList.front();_videoPacketList.pop_front();
+            decode_video(_video_dec_ctx, pkt, _frame);
+            av_free_packet(&pkt);
+        }
+        else {
+            exthread::sleep(20);
+        }
+    }
+}
+
+void Player::playerThread()
+{
+    // initialize packet, set data to NULL, let the demuxer fill it
+    av_init_packet(&_pkt);
+    _pkt.data = nullptr;
+    _pkt.size = 0;
+
+    // read frames from the file
+    while (av_read_frame(_fmt_ctx, &_pkt) >= 0 && !isQuit()) {
+        //EXCLOG(LOG_INFO, "stream index:%u pts:%llu size:%d\n", _pkt.stream_index, _pkt.pts, _pkt.size);
+        decode_packet(_pkt);
+    }
+
+    // video / audio 프레임이 모두 처리될 때까지 대기한다.
+    while ((_videoPacketList.size() || _audioStreamQueue.dataSize()) && !_quit) {
+        exthread::sleep(100);
+    }
+
+    requestQuit();
+}
+
+unsigned int Player::sdlRefreshTimerCallback(unsigned int interval, void* opaque)
+{
+    Player* player = (Player*)opaque;
+    SDL_Event event;
+    event.type = FF_REFRESH_EVENT;
+    event.user.data1 = opaque;
+    SDL_PushEvent(&event);
+}
+
+void Player::scheduleRefresh(unsigned int delay)
+{
+    EXCLOG(LOG_INFO, "interval=%d", delay);
+    SDL_AddTimer(delay, Player::sdlRefreshTimerCallback, this);
+}
+
+void Player::videoRefreshTimer()
+{
+    if (_video_stream_idx >= 0) {
+        if (!_vpq.size()) {
+            scheduleRefresh(1);
+        }
+        else {
+            int interval = vInterval;
+            scheduleRefresh(interval);
+            displayVideo();
+        }
+    }
+    else {
+        exthread::sleep(100);
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -410,3 +558,18 @@ void audio_callback (void *userdata, unsigned char* stream, int len)
     player->audioCallback(stream, len);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+int video_thread(void *arg)
+{
+    Player* player = (Player*)arg;
+    player->videoThread();
+    return 0;
+}
+
+int player_thread(void *arg)
+{
+    Player* player = (Player*)arg;
+    player->playerThread();
+    return 0;
+}

@@ -38,6 +38,7 @@ extern "C"
 #include "Player.h"
 #include "SDLDisplay.h"
 #include "library/basic/exlog.h"
+#include "library/basic/exthread.h"
 
 
 using namespace std;

@@ -30,23 +30,30 @@ void Mule::threadFunc()
 	int ret = 0;
 	while(!_stopped) {
 		int fd_max = makeAllFds(&readFds, &writeFds, &exceptFds);
-		struct timeval tv;
-		tv.tv_sec = 1;
-		tv.tv_usec = 0;
 
-		EXCLOG(LOG_INFO, "running... fd_max=%d", fd_max);
+		if (fd_max > 0) {
+			struct timeval tv;
+			tv.tv_sec = 1;
+			tv.tv_usec = 0;
 
-		ret = select(fd_max + 1, &readFds, &writeFds, &exceptFds, &tv);
-		if (ret < 0) {
-			//TODO: all disconnect
-			continue;
+			EXCLOG(LOG_INFO, "running... fd_max=%d", fd_max);
+
+			ret = select(fd_max + 1, &readFds, &writeFds, &exceptFds, &tv);
+			if (ret < 0) {
+				//TODO: all disconnect
+				continue;
+			}
+
+			if (ret == 0) {
+				EXCLOG(LOG_INFO, "ret == 0");
+			}
+
+			processAllFds(&readFds, &writeFds, &exceptFds);
 		}
-
-		if (ret == 0) {
-			EXCLOG(LOG_INFO, "ret == 0");
+		else {
+			EXCLOG(LOG_INFO, "no socket...");
+			exthread::sleep(200);
 		}
-
-		processAllFds(&readFds, &writeFds, &exceptFds);
 
 		EXCLOG(LOG_INFO, "running...");
 	}
@@ -61,7 +68,9 @@ int Mule::makeAllFds(fd_set* readFds, fd_set* writeFds, fd_set* exceptFds)
 {
     // TODO:
     RTSPTestServer::SessionsList& sessionsList = _server->sessionsList();
+    int maxFd = -1;
     for (auto session : sessionsList) {
+    	maxFd = std::max<int>(maxFd, session->socket());
         if (session->isListening()) {
 
         }
@@ -73,6 +82,8 @@ int Mule::makeAllFds(fd_set* readFds, fd_set* writeFds, fd_set* exceptFds)
             }
         }
     }
+
+    return maxFd;
 }
 
 void Mule::processAllFds(fd_set* readFds, fd_set* writeFds, fd_set* exceptFd)
