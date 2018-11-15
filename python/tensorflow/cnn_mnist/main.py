@@ -83,31 +83,86 @@ def load_mnist_set(labelfilename, imagefilename):
         '''
 
     #return labels, images
-    return np.array(labels), np.array(images).reshape((num_items, col * row))
-
-trainX, trainY, testX, testY, = load_mnists()
-print("read data : ")
-print("trainX : ", trainX.shape)
-print("trainY : ", trainY.shape)
-print("testX  : ", testX.shape)
-print("testY  : ", testY.shape)
-
-num_train = trainX.shape[0]
-num_test = testX.shape[0]
-
-print("num_train : ", num_train, " num_test : ", num_test)
-
-batch_size = 100
-total_batch = int(num_train / batch_size)
+    return np.array(labels).astype(np.float32), np.array(images).reshape((num_items, col * row)).astype(np.float32)
 
 def get_batch(data, batch_size, idx):
     ret = data[batch_size*idx:batch_size*(idx+1),]
     return ret
 
-for epoch in range(1):
-    total_cost = 0
 
-    for i in range(total_batch):
-        batch_xs = get_batch(trainX, batch_size, i)
-        batch_ys = get_batch(trainY, batch_size, i)
-        print("batch ", str(i), " : ", batch_xs.shape, batch_ys.shape)
+from models.model_simple import build_model_simple
+
+def run():
+    """
+    실행 함수
+    :return: void
+    """
+
+    # 데이터 준비
+    trainX, trainY, testX, testY, = load_mnists()
+    print("read data : ")
+    print("trainX : ", trainX.shape)
+    print("trainY : ", trainY.shape)
+    print("testX  : ", testX.shape)
+    print("testY  : ", testY.shape)
+
+    num_train = trainX.shape[0]
+    num_test = testX.shape[0]
+    classCnt = testY.shape[1]
+
+    from tensorflow.examples.tutorials.mnist import input_data
+    mnist = input_data.read_data_sets("./mnist/data/", one_hot=True)
+
+    _batch_xs, _batch_ys = mnist.train.next_batch(100)
+    print("mnist datatypes : ", _batch_xs.dtype, _batch_ys.dtype)
+
+
+
+    print("num_train : ", num_train, " num_test : ", num_test, "   classCnt : ", classCnt)
+
+    X = tf.placeholder(tf.float32, [None, 28, 28, 1])
+    Y = tf.placeholder(tf.float32, [None, classCnt])
+    keep_prob = tf.placeholder(tf.float32)
+
+    # select model : FIXME:
+    model = build_model_simple(X, keep_prob=keep_prob, labelCnt=classCnt)
+
+    # cost function
+    '''
+    softmax_cross_entropy_with_logits : computes softmax cross entropy between 'logits' and 'labels'
+    '''
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=Y))
+
+    # optimizer
+    optimizer = tf.train.AdamOptimizer(0.0001).minimize(cost) #AdamOptimizer() 인자는 Learning Rate
+    #RMSPropOptimizer를 사용해보면 어떨까?
+
+
+    batch_size = 100
+    total_batch = int(num_train / batch_size)
+
+    with tf.Session() as session:
+
+        for epoch in range(1):
+            total_cost = 0
+
+            for i in range(total_batch):
+                batch_xs = get_batch(trainX, batch_size, i)
+                batch_ys = get_batch(trainY, batch_size, i)
+                print("batch ", str(i), " : ", batch_xs.shape, batch_ys.shape, batch_xs.dtype, batch_ys.dtype)
+                batch_xs = batch_xs.reshape(-1, 28, 28, 1)
+
+
+                _, cost_val = session.run([optimizer, cost], feed_dict={X: batch_xs, Y: batch_ys, keep_prob:0.7})
+                total_cost += cost_val
+
+            print("epoch ", epoch, " average cost:", "{:.3f}".format(total_cost / total_batch))
+
+        print("optimization completed")
+
+        isCorrect = tf.equal(tf.argmax(model, 1), tf.argmax(Y, 1))
+        accuracy = tf.reduce_mean(tf.cast(isCorrect, tf.float32))
+        print("accuracy : ", session.run(accuracy, feed_dict={X:testX.reshape(-1, 28, 28, 1), Y:testY, keep_prob:1.0}))
+
+
+run()
