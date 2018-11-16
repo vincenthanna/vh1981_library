@@ -2,14 +2,18 @@ import tensorflow as tf
 import struct
 import numpy as np
 import matplotlib.pyplot as plt
+import math
+
+#models :
+from models.model_simple import build_model_simple
 
 def load_mnists():
+
+    # mnist file names :
     trainSet_label_filename = "train-labels.idx1-ubyte"
     trainSet_image_filename = "train-images.idx3-ubyte"
-
     testSet_label_filename = "t10k-labels.idx1-ubyte"
     testSet_image_filename = "t10k-images.idx3-ubyte"
-
 
     trainSet_labels, trainSet_images = load_mnist_set(trainSet_label_filename, trainSet_image_filename)
     testSet_labels, testSet_images = load_mnist_set(testSet_label_filename, testSet_image_filename)
@@ -32,17 +36,18 @@ def load_mnist_set(labelfilename, imagefilename):
         num_items = struct.unpack('>i', f.read(4))[0]
 
         for i in range(num_items):
-            # label = struct.unpack('b', f.read(1))
             label = struct.unpack('b', f.read(1))
-            label_one_hot = one_hot(label, 10)
-
-            #print("label : ", label, " one_hot : ", label_one_hot)
+            label_one_hot = one_hot(label, 10) # one-hot encoding으로 변경
             labels.append(label_one_hot)
 
         print("magic_number : ", format(magic_number, '08x'))
         print("items : ", num_items)
 
     with open(imagefilename, "rb") as f:
+        '''
+        image 파일의 경우 magic_number, image count, row, column 값이 4바이트 크기(uint32)로 저장되어 있다.
+        16번째 바이트부터는 이미지 데이터임.
+        '''
         magic_number = struct.unpack('>i', f.read(4))[0]  # 꺽쇠방향은 big/little endian 구분용 < : little, > : big
         num_items = struct.unpack('>i', f.read(4))[0]
         row = struct.unpack('>i', f.read(4))[0]
@@ -50,47 +55,46 @@ def load_mnist_set(labelfilename, imagefilename):
         print("magic:", magic_number, " items:", num_items, " (", row, ",", col, ")")
 
         for i in range(num_items):
-            image = bytearray(f.read(28 * 28))
-            if i == 1 :
-                print("image len", len(image))
+            image = bytearray(f.read(row * col))
             images.append(image)
-            #print("images len", len(images))
+
         print("images len : ", len(images))
-        # print("img 0", len(images[0]), " ", images[0])
-        # print("img 1", len(images[1]), " ", images[1])
-        # print("img 2", len(images[2]), " ", images[2])
 
-        '''
-        plt.title(str(labels[0]))
-        imgs = np.array(images)
-        imgs = imgs.reshape(num_items, col, row)
-        print(imgs[0].shape)
-
-        for i in range(0, 4):
-            plt.subplot(4, 1, i + 1)
-            plt.title(str(labels[i]))
-            plt.imshow(imgs[i])
-
-
-        # plt.subplot(4, 1, 2)
-        # plt.imshow(imgs[1])
-        # plt.subplot(4, 1, 3)
-        # plt.imshow(imgs[2])
-        # plt.subplot(4, 1, 4)
-        # plt.imshow(imgs[3])
-
-        plt.show()
-        '''
-
-    #return labels, images
+    #return labels, images as numpy array
     return np.array(labels).astype(np.float32), np.array(images).reshape((num_items, col * row)).astype(np.float32)
 
+def sample_data_check(imgs, labels):
+    '''
+    데이터가 제대로 읽혀졌는지 테스트하는 함수
+    :param imgs: [num, 28*28] 형태의 데이터
+    :param labels: 이미지 label(one-hot)
+    :return: none.
+    '''
+    print("sample_data_check:", imgs.shape, labels.shape)
+    num_imgs = imgs.shape[0]
+    imgs = imgs.reshape(-1, 28, 28)
+    print("sample_data_check:", imgs.shape, labels.shape)
+    cols = rows = int(math.sqrt(num_imgs))
+    for i in range(0, rows * cols):
+        plt.subplot(rows, cols, i + 1)
+        plt.xlabel("")
+        plt.title(np.argmax(labels[i]))
+        plt.imshow(imgs[i])
+
+    plt.show()
+
+
 def get_batch(data, batch_size, idx):
+    '''
+    data에서 batch_size * idx ~ batch_size * (idx+1)만큼 잘라서 리턴
+    :param data: 전체 데이터 크기
+    :param batch_size:batch 크기
+    :param idx:batch 데이터 인덱스(몇번째?)
+    :return: idx순서의 batch_size의 slice된 데이터
+    '''
     ret = data[batch_size*idx:batch_size*(idx+1),]
     return ret
 
-
-from models.model_simple import build_model_simple
 
 def run():
     """
@@ -106,16 +110,13 @@ def run():
     print("testX  : ", testX.shape)
     print("testY  : ", testY.shape)
 
+    check_xs = get_batch(trainX, 20, 0)
+    check_ys = get_batch(trainY, 20, 0)
+    sample_data_check(check_xs, check_ys)
+
     num_train = trainX.shape[0]
     num_test = testX.shape[0]
     classCnt = testY.shape[1]
-
-    from tensorflow.examples.tutorials.mnist import input_data
-    mnist = input_data.read_data_sets("./mnist/data/", one_hot=True)
-
-    _batch_xs, _batch_ys = mnist.train.next_batch(100)
-    print("mnist datatypes : ", _batch_xs.dtype, _batch_ys.dtype)
-
 
 
     print("num_train : ", num_train, " num_test : ", num_test, "   classCnt : ", classCnt)
@@ -143,15 +144,17 @@ def run():
 
     with tf.Session() as session:
 
-        for epoch in range(1):
+        initializer = tf.global_variables_initializer()
+        session.run(initializer)
+
+        for epoch in range(5):
             total_cost = 0
 
             for i in range(total_batch):
                 batch_xs = get_batch(trainX, batch_size, i)
                 batch_ys = get_batch(trainY, batch_size, i)
-                print("batch ", str(i), " : ", batch_xs.shape, batch_ys.shape, batch_xs.dtype, batch_ys.dtype)
                 batch_xs = batch_xs.reshape(-1, 28, 28, 1)
-
+                #print("batch ", str(i), " : ", batch_xs.shape, batch_ys.shape, batch_xs.dtype, batch_ys.dtype)
 
                 _, cost_val = session.run([optimizer, cost], feed_dict={X: batch_xs, Y: batch_ys, keep_prob:0.7})
                 total_cost += cost_val
