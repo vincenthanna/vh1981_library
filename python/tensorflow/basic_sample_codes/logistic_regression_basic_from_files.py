@@ -1,12 +1,13 @@
 import tensorflow as tf
 import numpy as np
 
-x_data = [[1,2], [2,3], [3,1], [4,3], [5,3], [6,2]]
-y_data = [[0], [0], [0], [1], [1], [1]]
+xy = np.loadtxt('data-03-diabetes.csv', delimiter=',', dtype=np.float32)
+x_data = xy[:, 0:-1]
+y_data = xy[:, [-1]]
 
-X = tf.placeholder(tf.float32, shape=[None, 2])
+X = tf.placeholder(tf.float32, shape=[None, 8])
 Y = tf.placeholder(tf.float32, shape=[None, 1])
-W = tf.Variable(tf.random_normal([2, 1], seed=1), name='weight')
+W = tf.Variable(tf.random_normal([8, 1], seed=1), name='weight')
 b = tf.Variable(tf.random_normal([1], seed=1), name='bias')
 
 # hypothesis using sigmoid
@@ -35,4 +36,4 @@ with tf.Session() as session:
     print("Hypothesis:", h, "correct(Y):", c, "accuracy:", a)
 
     # tf.equal() 결과값이 궁금해서 별도 출력해봄
-    print("tf.equal(pred, Y)=", session.run([tf.equal(pred, Y)], feed_dict={X:x_data, Y:y_data}))
+    #print("tf.equal(pred, Y)=", session.run([tf.equal(pred, Y)], feed_dict={X:x_data, Y:y_data}))
