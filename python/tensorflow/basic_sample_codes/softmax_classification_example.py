@@ -6,6 +6,8 @@ x_data = [[1,2,1,1,], [2,1,3,2], [3,1,3,4], [4,1,5,5], [1,7,5,5], [1,2,5,6], [1,
 y_data = [[0,0,1], [0,0,1], [0,0,1], [0,1,0], [0,1,0], [0,1,0], [1,0,0], [1,0,0]]
 #tf.one_hot([2,2,2,1,1,1,0,0], depth=3)
 
+k = [[[1,2],[3,4]], [[5,6],[7,8]]]
+
 X = tf.placeholder(tf.float32, shape=[None, 4])
 Y = tf.placeholder(tf.float32, shape=[None, 3])
 nb_classes = 3
@@ -32,6 +34,9 @@ optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1).minimize(cost)
 
 with tf.Session() as session:
     session.run(tf.global_variables_initializer())
+
+    _k = session.run([tf.reduce_sum(k, axis=0, keep_dims=True)])
+    print("_k", _k)
 
     for step in range(2001):
         session.run(optimizer, feed_dict={X:x_data, Y:y_data})
