@@ -6,17 +6,40 @@ y_data = [[0], [1], [1], [0]]
 
 input_cnt = 4
 
-W1 = tf.Variable(tf.random_normal([2, 10]), dtype=tf.float32, name='weight01')
-b1 = tf.Variable(tf.random_normal([10]), dtype=tf.float32, name='bias01')
+def build_layer(layer_id, input, inputsize, outputsize):
+    layername = "layer_{:%d}".format(layer_id)
+    with tf.name_scope(layername) as scope:
+        wname = "{}_w".format(layername)
+        bname = "{}_b".format(layername)
+        W = tf.Variable(tf.random_normal([inputsize, outputsize]), dtype=tf.float32, name=wname)
+        b = tf.Variable(tf.random_normal([outputsize]), dtype=tf.float32, name=bname)
 
-W2 = tf.Variable(tf.random_normal([10, 8]), dtype=tf.float32, name='weight02')
-b2 = tf.Variable(tf.random_normal([8]), dtype=tf.float32, name='bias02')
+        # tensorboard summary:
+        tb_wname = "tb_{}".format(wname)
+        tb_bname = "tb_{}".format(bname)
+        tf.summary.histogram(wname, tb_wname)
+        tf.summary.histogram(bname, tb_bname)
 
-W3 = tf.Variable(tf.random_normal([8, 4]), dtype=tf.float32, name='weight03')
-b3 = tf.Variable(tf.random_normal([4]), dtype=tf.float32, name='bias03')
+        #layer = tf.nn.relu(tf.matmul(input, W) + b)
+        layer = tf.sigmoid(tf.matmul(input, W) + b)
+        return layer
 
-W4 = tf.Variable(tf.random_normal([4, 1]), dtype=tf.float32, name='weight04')
-b4 = tf.Variable(tf.random_normal([1]), dtype=tf.float32, name='bias04')
+def build_model(input, inputsize, outputsize):
+    l1 = build_layer(1, input, inputsize, 5)
+    l2 = build_layer(2, l1, 5, 5)
+    l3 = build_layer(3, l2, 5, 5)
+    l4 = build_layer(4, l3, 5, 5)
+    l5 = build_layer(5, l4, 5, 5)
+    l6 = build_layer(6, l5, 5, 5)
+    l7 = build_layer(7, l6, 5, 5)
+    l8 = build_layer(8, l7, 5, 5)
+    l9 = build_layer(9, l8, 5, 5)
+    l10 = build_layer(10, l9, 5, 5)
+
+    output = build_layer(11, l10, 5, 1)
+
+
+
 
 X = tf.placeholder(tf.float32, name="X", shape=[input_cnt, 2])
 Y = tf.placeholder(tf.float32, name="Y", shape=[input_cnt, 1])
