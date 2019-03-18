@@ -52,11 +52,6 @@ def build_model(input, inputsize, outputsize):
 X = tf.placeholder(tf.float32, name="X", shape=[input_cnt, 2])
 Y = tf.placeholder(tf.float32, name="Y", shape=[input_cnt, 1])
 
-# my1 = tf.sigmoid(tf.matmul(X, W1) + b1)
-# my2 = tf.sigmoid(tf.matmul(my1, W2) + b2)
-# my3 = tf.sigmoid(tf.matmul(my2, W3) + b3)
-# hypothesis = tf.sigmoid(tf.matmul(my3, W4) + b4)
-
 hypothesis = build_model(X, 2, 1)
 # print("hypothesis.shape:", hypothesis.shape)  # (4, 1)
 
@@ -66,17 +61,9 @@ train = tf.train.GradientDescentOptimizer(learning_rate=0.1).minimize(cost)
 '''
 building tensorboard summary
 '''
-# w1_hist = tf.summary.histogram('weights01', W1)
-# w2_hist = tf.summary.histogram('weights02', W2)
-# w3_hist = tf.summary.histogram('weights03', W3)
-# w4_hist = tf.summary.histogram('weights04', W4)
-# tf.summary.histogram('b1', b1)
-# tf.summary.histogram('b2', b2)
-# tf.summary.histogram('b3', b3)
-# tf.summary.histogram('b4', b4)
 cost_sum = tf.summary.scalar('cost', cost)
 summary = tf.summary.merge_all()
-summary_step = 0
+summary_step = 1
 
 
 # accuracy check
@@ -92,11 +79,10 @@ with tf.Session() as session:
 
     for step in range(10001):
         s, _ = session.run([summary, train], feed_dict={X: x_data, Y: y_data})
-        writer.add_summary(s, global_step=step)
+        writer.add_summary(s, global_step=summary_step)
+        summary_step += 1
         if step % 1000 == 0:
             print(step, "cost:", session.run([cost], feed_dict={X: x_data, Y: y_data}))
-            # h, c, a = session.run([hypothesis, predicted, accuracy], feed_dict={X: x_data, Y: y_data})
-            # print("hypothesis:", h, "correct:", c, "accuracy:", a)
 
     # 최종 결과
     h, c, a = session.run([hypothesis, predicted, accuracy], feed_dict={X: x_data, Y: y_data})
