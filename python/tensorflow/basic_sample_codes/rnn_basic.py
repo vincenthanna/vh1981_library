@@ -44,6 +44,7 @@ def rnn_simple_batch_input():
     cell = tf.contrib.rnn.BasicLSTMCell(num_units=hidden_size)
 
     outputs, states = tf.nn.dynamic_rnn(cell, x_data, dtype=tf.float32)
+    print("outputs.shape=", outputs.shape)
 
     with tf.Session() as session:
         session.run(tf.global_variables_initializer())
