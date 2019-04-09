@@ -23,9 +23,11 @@ from sklearn import preprocessing
 
 def load_data():
     (X_train, y_train), (X_test, y_test) = datasets.boston_housing.load_data()
+    print("before:", X_train)
     scaler = preprocessing.MinMaxScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.fit_transform(X_test)
+    print("after:", X_train)
     return (X_train, y_train), (X_test, y_test)
 
 

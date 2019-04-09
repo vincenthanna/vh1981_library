@@ -42,7 +42,7 @@ import matplotlib.pyplot as plt
 # 학습 및 성능 평가
 def main():
     nh_1 = [100, 50]
-    pd_1 = [0.02, 0.5]
+    pd_1 = [0.0, 0.0]
     num_classes = 10
     nout = num_classes
 

@@ -8,7 +8,7 @@ def ann_models_func(nin, nh, nout):
     h = layers.Activation('relu')(layers.Dense(nh)(nin))
     y = layers.Activation('softmax')(layers.Dense(nout)(h))
     model = models.Model(x, y)
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy', 'loss'])
 
     return model
 
@@ -113,7 +113,8 @@ def main():
     nout = num_classes
 
     model = ann_seq_class(nin, nh, nout)
-    model = ann_models_class(nin, nh, nout)
+    #model = ann_models_func(nin, nh, nout)
+
     (X_train, Y_train), (X_test, Y_test) = get_data() # (?, 784), (?, 10)
 
     # training
