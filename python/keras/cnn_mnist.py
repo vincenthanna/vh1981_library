@@ -5,7 +5,11 @@ from keras import backend
 class CNN(models.Sequential):
     def __init__(self, input_shape, num_classes):
         super().__init__()
-
+        '''
+        Conv2D()
+        padding = 'valid'(default):유효영역만 처리하므로 크기가 작아진다. 'same':출력크기가 동일해짐
+        stride = (1,1)
+        '''
         self.add(layers.Conv2D(filters=32, kernel_size=(3, 3), activation='relu', input_shape=input_shape))
         self.add(layers.Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))
         self.add(layers.MaxPooling2D(pool_size=(2,2)))
@@ -25,10 +29,12 @@ class DATA():
         num_classes = 10
 
         (x_train, y_train), (x_test, y_test) = datasets.mnist.load_data()
-        rows, cols = x_train.shape[1:3]
+        rows, cols = x_train.shape[1:3] # (28, 28) 1부터 3-1까지
 
         print("rows :{}, cols :{}".format(rows, cols))
 
+        # image_data_format에 따라 shape 재조정
+        # 1은 channel임(mnist는 단색이므로)
         if backend.image_data_format() == 'channels_first':
             x_train = x_train.reshape(x_train.shape[0], 1, rows, cols)
             x_test = x_test.reshape(x_test.shape[0], 1, rows, cols)
