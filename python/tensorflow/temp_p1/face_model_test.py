@@ -1,8 +1,9 @@
 import unittest
 import tensorflow as tf
 from face_model import face_recognition_model
-from main import triplet_loss_func
 import numpy as np
+#from main import triplet_loss
+import keras.backend as K
 
 from keras import backend as K
 K.set_image_data_format('channels_last')
@@ -15,16 +16,6 @@ class basicTest(unittest.TestCase):
         print("model output_shape=", model.output_shape)
         print("model.count_params()=", model.count_params())
         model.summary()
-
-    def test_triplet_loss(self):
-        with tf.Session() as test:
-            tf.set_random_seed(1)
-            y_pred = (tf.random_normal([3, 128], mean=6, stddev=0.1, seed=1),
-                      tf.random_normal([3, 128], mean=1, stddev=1, seed=1),
-                      tf.random_normal([3, 128], mean=3, stddev=4, seed=1))
-            loss = triplet_loss_func(y_pred)
-
-            self.assertTrue(round(loss.eval(), 3), 528.143)
 
     def aa_test_expand_dims(self):
         with tf.Session() as test:
@@ -58,7 +49,7 @@ class basicTest(unittest.TestCase):
             a = tf.sqrt(tf.reduce_sum(a, axis=-1))
             print(a.shape)
 
-    def test_222(self):
+    def __test_222(self):
         with tf.Session() as test:
             a = np.array([
                 [True, False],
@@ -78,6 +69,13 @@ class basicTest(unittest.TestCase):
             print(tf.reduce_max(k, axis=0).eval(session=test).shape)
             print(tf.reduce_max(k, axis=1).eval(session=test).shape)
             print(tf.reduce_max(k, axis=-1).eval(session=test).shape)
+
+    def test_333(self):
+        with tf.Session() as test:
+            K.set_session(test)
+            a = K.eye(3)
+            print(K.eval(a))
+
 
 
 if __name__ == '__main__':

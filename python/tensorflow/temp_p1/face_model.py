@@ -9,7 +9,48 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers.pooling import MaxPooling2D, AveragePooling2D
 from keras.layers.core import Lambda, Flatten, Dense
 
-def face_recognition_model(input_shape):
+def all_diffs(a, b):
+    # Returns a tensor of all combinations of a - b
+    print("shapes:", a.shape, b.shape)
+
+    return K.expand_dims(a, axis=1) - K.expand_dims(b, axis=0)
+
+
+def euclidean_dist(embed1, embed2):
+    # Measures the euclidean dist between all samples in embed1 and embed2
+
+    diffs = all_diffs(embed1, embed2)  # get a square matrix of all diffs
+    print("diffs.shape=", diffs.shape)
+    return K.sqrt(K.reduce_sum(K.square(diffs), axis=-1) + 1e-12)
+
+
+TL_MARGIN = 0.2  # The minimum distance margin
+
+
+def triplet_loss(dists, labels):
+    # Defines the "batch hard" triplet loss function.
+    print("labels.shape", labels)
+    same_identity_mask = K.equal(K.expand_dims(labels, axis=1),
+                                  K.expand_dims(labels, axis=0))
+    print("same_identity_mask.shape=", same_identity_mask.shape)
+
+    aaa = K.eye(K.shape(labels)[0], dtype=K.bool)
+    print("K.eye.shape=", aaa.shape)
+
+    negative_mask = K.logical_not(same_identity_mask)
+    positive_mask = K.logical_xor(same_identity_mask,
+                                   K.eye(K.shape(labels)[0], dtype=K.bool))
+
+    furthest_positive = K.reduce_max(dists * K.cast(positive_mask, K.float32), axis=1)
+    closest_negative = K.map_fn(lambda x: K.reduce_min(K.boolean_mask(x[0], x[1])),
+                                 (dists, negative_mask), K.float32)
+
+    diff = furthest_positive - closest_negative
+
+    return K.maximum(diff + TL_MARGIN, 0.0)
+
+
+def face_recognition_model_layer(input_shape):
     """Face Recognition Model 생성
 
     input_shape의 이미지들을 입력받아서 (None, 128)의 vector로 출력한다.
@@ -47,3 +88,13 @@ def face_recognition_model(input_shape):
     model = Model(inputs=input, outputs=h, name='FaceRecognitionModel')
 
     return model
+
+
+def face_recognition_model(input_shape):
+    embeddings = face_recognition_model_layer(input_shape)
+
+    dists = euclidean_dist(embeddings, embeddings)
+    print("dists.shape=", dists.shape)
+
+
+
