@@ -90,11 +90,14 @@ def face_recognition_model_layer(input_shape):
     return model
 
 
-def face_recognition_model(input_shape):
-    embeddings = face_recognition_model_layer(input_shape)
-
-    dists = euclidean_dist(embeddings, embeddings)
-    print("dists.shape=", dists.shape)
-
-
-
+# def face_recognition_model(input_shape, Labels):
+#     embeddings = face_recognition_model_layer(input_shape)
+#
+#     dists = euclidean_dist(embeddings, embeddings)
+#     print("dists.shape=", dists.shape)
+#
+#     loss = K.mean(triplet_loss(dists, Labels))
+#
+#
+#
+#
