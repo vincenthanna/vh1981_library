@@ -6,7 +6,11 @@ from face_model import face_recognition_model_layer
 from dataset import prepare_data
 from dataset import get_batch
 
-prepare_data()
+labels, imgpaths = prepare_data()
+
+# model = face_recognition_model_layer(input_shape=(200, 200, 3))
+
+
 
 
 

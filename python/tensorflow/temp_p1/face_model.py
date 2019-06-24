@@ -50,7 +50,7 @@ def triplet_loss(dists, labels):
     return K.maximum(diff + TL_MARGIN, 0.0)
 
 
-def face_recognition_model_layer(input_shape):
+def face_recognition_model(input_shape, labels):
     """Face Recognition Model 생성
 
     input_shape의 이미지들을 입력받아서 (None, 128)의 vector로 출력한다.
@@ -87,17 +87,17 @@ def face_recognition_model_layer(input_shape):
 
     model = Model(inputs=input, outputs=h, name='FaceRecognitionModel')
 
+    dists = euclidean_dist(model, model)
+    loss = K.mean(triplet_loss(dists, labels))
+
+    Model.compile(loss=loss, optimizer='adam', metrics=['accuracy'])
+
     return model
 
 
-# def face_recognition_model(input_shape, Labels):
-#     embeddings = face_recognition_model_layer(input_shape)
-#
-#     dists = euclidean_dist(embeddings, embeddings)
-#     print("dists.shape=", dists.shape)
-#
-#     loss = K.mean(triplet_loss(dists, Labels))
-#
-#
-#
-#
+
+
+
+
+
+
