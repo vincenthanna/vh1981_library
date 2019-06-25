@@ -1,19 +1,24 @@
 import numpy as np
 import os
 from numpy import genfromtxt
-from keras import backend as K
-from keras import models, layers
-from keras.layers import Conv2D, ZeroPadding2D, Activation, Input, concatenate
-from keras.models import Model
-from keras.layers.normalization import BatchNormalization
-from keras.layers.pooling import MaxPooling2D, AveragePooling2D
-from keras.layers.core import Lambda, Flatten, Dense
+
+# from keras import backend as K
+# from keras import models, layers
+# from keras.layers import Conv2D, ZeroPadding2D, Activation, Input, concatenate
+# from keras.models import Model
+# from keras.layers.normalization import BatchNormalization
+# from keras.layers.pooling import MaxPooling2D, AveragePooling2D
+# from keras.layers.core import Lambda, Flatten, Dense
+
+import tensorflow as tf
+from tensorflow.layers import max_pooling2d, conv2d, batch_normalization, flatten, dense
+from tensorflow.nn import relu
 
 def all_diffs(a, b):
     # Returns a tensor of all combinations of a - b
     print("shapes:", a.shape, b.shape)
 
-    return K.expand_dims(a, axis=1) - K.expand_dims(b, axis=0)
+    return tf.expand_dims(a, axis=1) - tf.expand_dims(b, axis=0)
 
 
 def euclidean_dist(embed1, embed2):
@@ -21,7 +26,7 @@ def euclidean_dist(embed1, embed2):
 
     diffs = all_diffs(embed1, embed2)  # get a square matrix of all diffs
     print("diffs.shape=", diffs.shape)
-    return K.sqrt(K.reduce_sum(K.square(diffs), axis=-1) + 1e-12)
+    return tf.sqrt(tf.reduce_sum(tf.square(diffs), axis=-1) + 1e-12)
 
 
 TL_MARGIN = 0.2  # The minimum distance margin
@@ -30,27 +35,27 @@ TL_MARGIN = 0.2  # The minimum distance margin
 def triplet_loss(dists, labels):
     # Defines the "batch hard" triplet loss function.
     print("labels.shape", labels)
-    same_identity_mask = K.equal(K.expand_dims(labels, axis=1),
-                                  K.expand_dims(labels, axis=0))
-    print("same_identity_mask.shape=", same_identity_mask.shape)
+    same_identity_mask = tf.equal(tf.expand_dims(labels, axis=1),
+                                  tf.expand_dims(labels, axis=0))
+    print("same_identity_mastf.shape=", same_identity_mask.shape)
 
-    aaa = K.eye(K.shape(labels)[0], dtype=K.bool)
-    print("K.eye.shape=", aaa.shape)
+    aaa = tf.eye(tf.shape(labels)[0], dtype=tf.bool)
+    print("tf.eye.shape=", aaa.shape)
 
-    negative_mask = K.logical_not(same_identity_mask)
-    positive_mask = K.logical_xor(same_identity_mask,
-                                   K.eye(K.shape(labels)[0], dtype=K.bool))
+    negative_mask = tf.logical_not(same_identity_mask)
+    positive_mask = tf.logical_xor(same_identity_mask,
+                                   tf.eye(tf.shape(labels)[0], dtype=tf.bool))
 
-    furthest_positive = K.reduce_max(dists * K.cast(positive_mask, K.float32), axis=1)
-    closest_negative = K.map_fn(lambda x: K.reduce_min(K.boolean_mask(x[0], x[1])),
-                                 (dists, negative_mask), K.float32)
+    furthest_positive = tf.reduce_max(dists * tf.cast(positive_mask, tf.float32), axis=1)
+    closest_negative = tf.map_fn(lambda x: tf.reduce_min(tf.boolean_mask(x[0], x[1])),
+                                 (dists, negative_mask), tf.float32)
 
     diff = furthest_positive - closest_negative
 
-    return K.maximum(diff + TL_MARGIN, 0.0)
+    return tf.maximum(diff + TL_MARGIN, 0.0)
 
 
-def face_recognition_model(input_shape, labels):
+def face_recognition_model(images):
     """Face Recognition Model 생성
 
     input_shape의 이미지들을 입력받아서 (None, 128)의 vector로 출력한다.
@@ -59,45 +64,28 @@ def face_recognition_model(input_shape, labels):
         input_shape -- shape of the images of the dataset
 
     Returns:
-        model -- a Model() instance in Keras
+
     """
-    # Input 생성
-    input = Input(input_shape)
 
-    h = Conv2D(filters=32, kernel_size=(3,3), strides=(2,2), activation='relu', input_shape=input_shape)(input)
-    h = MaxPooling2D(pool_size=(2, 2))(h)
-    h = BatchNormalization(axis=1, name='bn1')(h)
+    h = conv2d(images, filters=32, kernel_size=(3,3), strides=(2, 2), activation=relu)
+    h = max_pooling2d(h, pool_size=(2, 2))
+    h = batch_normalization(h, axis=1, name='bn1')
 
-    h = Conv2D(filters=64, kernel_size=(3, 3), strides=(2, 2), activation='relu', input_shape=input_shape)(h)
-    h = BatchNormalization(axis=1, name='bn2')(h)
+    h = conv2d(h, filters=64, kernel_size=(3, 3), strides=(2, 2), activation='relu')
+    h = batch_normalization(h, axis=1, name='bn2')
 
-    h = Conv2D(filters=128, kernel_size=(3, 3), strides=(2, 2), activation='relu', input_shape=input_shape)(h)
-    h = BatchNormalization(axis=1, name='bn3')(h)
+    h = conv2d(h, filters=128, kernel_size=(3, 3), strides=(2, 2), activation='relu')
+    h = batch_normalization(h, axis=1, name='bn3')
 
-    h = Conv2D(filters=256, kernel_size=(3, 3), strides=(2, 2), activation='relu', input_shape=input_shape)(h)
-    h = BatchNormalization(axis=1, name='bn4')(h)
+    h = conv2d(h, hfilters=256, kernel_size=(3, 3), strides=(2, 2), activation='relu')
+    h = batch_normalization(h, axis=1, name='bn4')
 
-    h = Flatten()(h)
+    h = flatten(h)
 
-    h = Dense(512, activation='relu')(h)
-    h = Dense(256, activation='relu')(h)
-    h = Dense(128, activation='relu')(h)
+    h = dense(h, 512, activation='relu')
+    h = dense(h, 256, activation='relu')
+    h = dense(h, 128, activation='relu')
 
-    h = Dense(128, activation='softmax', name='prediction')(h)
+    hypothesis = dense(h, 128, activation='softmax', name='prediction')
 
-    model = Model(inputs=input, outputs=h, name='FaceRecognitionModel')
-
-    dists = euclidean_dist(model, model)
-    loss = K.mean(triplet_loss(dists, labels))
-
-    Model.compile(loss=loss, optimizer='adam', metrics=['accuracy'])
-
-    return model
-
-
-
-
-
-
-
-
+    return hypothesis
