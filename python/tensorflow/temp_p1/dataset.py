@@ -3,6 +3,7 @@ import os
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.utils import shuffle
 
 from keras.preprocessing.image import ImageDataGenerator
 
@@ -48,7 +49,8 @@ def prepare_data():
         labels.extend([idx for i in range(len(files))])
         imgpaths.extend(files)
 
-        # TODO: shuffle을 한번 해줘야 한다.
+    # TODO: shuffle을 한번 해줘야 한다.
+    labels, imgpaths = shuffle(labels, imgpaths)
 
 
         # 실제 이미지는 batch 넘길때 load하면 된다.

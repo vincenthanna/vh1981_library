@@ -17,7 +17,6 @@ from tensorflow.nn import relu
 def all_diffs(a, b):
     # Returns a tensor of all combinations of a - b
     print("shapes:", a.shape, b.shape)
-
     return tf.expand_dims(a, axis=1) - tf.expand_dims(b, axis=0)
 
 
@@ -68,23 +67,22 @@ def face_recognition_model(images):
     """
 
     h = conv2d(images, filters=32, kernel_size=(3,3), strides=(2, 2), activation=relu)
-    h = max_pooling2d(h, pool_size=(2, 2))
-    h = batch_normalization(h, axis=1, name='bn1')
+    h = max_pooling2d(h, pool_size=(2, 2), strides=(1,1))
+    h = batch_normalization(h, name='bn1')
 
     h = conv2d(h, filters=64, kernel_size=(3, 3), strides=(2, 2), activation='relu')
-    h = batch_normalization(h, axis=1, name='bn2')
+    h = batch_normalization(h, name='bn2')
 
     h = conv2d(h, filters=128, kernel_size=(3, 3), strides=(2, 2), activation='relu')
-    h = batch_normalization(h, axis=1, name='bn3')
+    h = batch_normalization(h, name='bn3')
 
-    h = conv2d(h, hfilters=256, kernel_size=(3, 3), strides=(2, 2), activation='relu')
-    h = batch_normalization(h, axis=1, name='bn4')
+    h = conv2d(h, filters=256, kernel_size=(3, 3), strides=(2, 2), activation='relu')
+    h = batch_normalization(h, name='bn4')
 
     h = flatten(h)
 
     h = dense(h, 512, activation='relu')
     h = dense(h, 256, activation='relu')
-    h = dense(h, 128, activation='relu')
 
     hypothesis = dense(h, 128, activation='softmax', name='prediction')
 

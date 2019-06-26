@@ -161,15 +161,16 @@ with tf.Session() as sess:
     loss_hist = []
     lr_hist = []
     # Train for 5000 epochs
-    for i in range(10):
+    for i in range(5000):
         data, labels = get_batch(train_set, 8)
 
-        print("labels:", labels)
+        #print("labels:", labels)
 
         feed_dict = {Images: data, Labels: labels}
 
         _, lr, raw_loss, embeddings = sess.run([train_step,
                                                 optimizer._lr, loss, embedded_images], feed_dict)
+        print("raw_loss : ", raw_loss)
 
         lr_hist.append(lr)
         loss_hist.append(raw_loss)
