@@ -23,7 +23,6 @@ font_name = "NanumGothic"
 matplotlib.rc('font', family = font_name)
 
 def prepare_data():
-
     names = {}
     idx = 0
     for subdir in os.listdir("./PINS"):
@@ -64,7 +63,7 @@ def prepare_data():
 
     print(len(labels), len(imgpaths))
 
-    return labels, imgpaths
+    return labels, imgpaths, names
 
 def get_batch(data, batch_size, idx, isImgPath=False):
     """data에서 batch_size * idx ~ batch_size * (idx+1)만큼 잘라서 리턴

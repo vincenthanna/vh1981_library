@@ -161,7 +161,7 @@ with tf.Session() as sess:
     loss_hist = []
     lr_hist = []
     # Train for 5000 epochs
-    for i in range(5000):
+    for i in range(10):
         data, labels = get_batch(train_set, 8)
 
         #print("labels:", labels)

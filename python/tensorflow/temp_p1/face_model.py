@@ -1,15 +1,5 @@
 import numpy as np
 import os
-from numpy import genfromtxt
-
-# from keras import backend as K
-# from keras import models, layers
-# from keras.layers import Conv2D, ZeroPadding2D, Activation, Input, concatenate
-# from keras.models import Model
-# from keras.layers.normalization import BatchNormalization
-# from keras.layers.pooling import MaxPooling2D, AveragePooling2D
-# from keras.layers.core import Lambda, Flatten, Dense
-
 import tensorflow as tf
 from tensorflow.layers import max_pooling2d, conv2d, batch_normalization, flatten, dense
 from tensorflow.nn import relu
@@ -57,13 +47,13 @@ def triplet_loss(dists, labels):
 def face_recognition_model(images):
     """Face Recognition Model 생성
 
-    input_shape의 이미지들을 입력받아서 (None, 128)의 vector로 출력한다.
+    image를 입력받아 (None, 128)의 vector로 출력한다.
 
     Args:
-        input_shape -- shape of the images of the dataset
+        images -- image 배열 혹은 tensor
 
     Returns:
-
+        tensor layer object
     """
 
     h = conv2d(images, filters=32, kernel_size=(3,3), strides=(2, 2), activation=relu)
