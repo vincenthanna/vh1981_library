@@ -5,14 +5,13 @@ from face_model import face_recognition_model, euclidean_dist, triplet_loss
 from dataset import prepare_data
 from dataset import get_batch
 
-total_labels, total_imgpaths, nameIndexes= prepare_data()
+total_labels, total_imgpaths, nameIndexes = prepare_data()
 batch_size = 32
 
 imgs = get_batch(total_imgpaths, batch_size, 0, isImgPath=True)
 input_shape = imgs.shape[1:]
 print("input image shape =", input_shape)
 width, height, channels = input_shape
-
 
 
 # placeholders :
@@ -42,19 +41,10 @@ with tf.Session() as session:
         for i in range(total_batch):
             labels = get_batch(total_labels, batch_size=batch_size, idx=i)
             images = get_batch(total_imgpaths, batch_size=batch_size, idx=i, isImgPath=True)
-            print(labels)
-            #name = nameIndexes
-            c, _ = session.run([cost, optimizer], feed_dict={tImages:images, tLabels:labels})
+            print(labels)            
+            c, _ = session.run([cost, optimizer], feed_dict={tImages: images, tLabels: labels})
             print(c.shape)
             print("batch", i, "cost=", c)
-
-
-
-
-
-# model = face_recognition_model_layer(input_shape=(200, 200, 3))
-
-
 
 
 

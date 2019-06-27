@@ -73,7 +73,7 @@ TL_MARGIN = 0.2  # The minimum distance margin
 
 def bh_triplet_loss(dists, labels):
     """triplet loss를 계산한다.
-    :param dists:
+    :param dists: 이미지들 간의 차이값이 2차원 행렬로 되어 있음.
     :param labels: mask 만들 때 같다/아니다 정보만 사용하므로 index만 넘기는 것이 훨씬 간편한다.
     :return:
     """
@@ -88,10 +88,20 @@ def bh_triplet_loss(dists, labels):
     positive_mask = tf.logical_xor(same_identity_mask,
                                    tf.eye(tf.shape(labels)[0], dtype=tf.bool))
 
+    print("masks.shape : ", negative_mask.shape, positive_mask.shape) #[None, None], [None, None]
+
+    # 곱해서 차원은 변경없고(nxn행렬이므로), 
     furthest_positive = tf.reduce_max(dists * tf.cast(positive_mask, tf.float32), axis=1)
+    """
+    map_fn : map on the list of tensors unpacked from elems on dimension 0.
+    (dists, negative_mask)에서 element하나씩 뽑아서 lambda식에 적용한다.
+    =>한 행씩 masking해서 negative값만 남기고 가장작은 값만 추린다.
+    [None,]의 1차원 값 배열만 남는다.(furthest_positive도 reduce_max로 동일.)
+    """
     closest_negative = tf.map_fn(lambda x: tf.reduce_min(tf.boolean_mask(x[0], x[1])),
                                  (dists, negative_mask), tf.float32)
 
+    print("f/c shapes:", furthest_positive.shape, closest_negative.shape) #[None,], [None,]
     diff = furthest_positive - closest_negative
 
     return tf.maximum(diff + TL_MARGIN, 0.0)
@@ -141,13 +151,16 @@ Labels = tf.placeholder(tf.int32, [None], name='labels_ph')
 
 # Embeds images using the defined model
 embedded_images = embedImages(Images)
+print("embedded_images.shape=", embedded_images.shape) #[None, 4]
 
 # Measure distance between al embeddings
 dists = euclidean_dist(embedded_images, embedded_images)
 print("dists.shape : ", dists.shape)
 
 # Calculate triplet loss for the give dists
+print("triplet_loss shape=", bh_triplet_loss(dists, Labels).shape) # [None,] 1차원
 loss = tf.reduce_mean(bh_triplet_loss(dists, Labels))
+print("loss.shape=", loss.shape)
 
 global_step = tf.Variable(0, trainable=False, name='global_step')
 learning_rate = tf.train.exponential_decay(0.001, global_step, 5000, 0.96, staircase=True)
@@ -160,11 +173,11 @@ with tf.Session() as sess:
 
     loss_hist = []
     lr_hist = []
-    # Train for 5000 epochs
-    for i in range(10):
-        data, labels = get_batch(train_set, 8)
 
-        #print("labels:", labels)
+    epochs = 10
+    # Train for epochs
+    for i in range(epochs):
+        data, labels = get_batch(train_set, 8)   
 
         feed_dict = {Images: data, Labels: labels}
 

@@ -7,20 +7,21 @@ from sklearn.utils import shuffle
 
 from keras.preprocessing.image import ImageDataGenerator
 
-#pyplot 한글 출력
+# pyplot 한글 출력
 import matplotlib.font_manager as fm
 
 from PIL import Image
 
 import matplotlib
-print(matplotlib.matplotlib_fname() )
+print(matplotlib.matplotlib_fname())
 
 '''
 pyplot에 기본 설정된 폰트가 한글을 지원하지 않아서 title의 한글 등이 깨지므로
 한글을 지원하는 폰트 명으로 교체한다.
 '''
 font_name = "NanumGothic"
-matplotlib.rc('font', family = font_name)
+matplotlib.rc('font', family=font_name)
+
 
 def prepare_data():
     names = {}
@@ -33,7 +34,6 @@ def prepare_data():
 
     labels = []
     imgpaths = []
-    #images = []
 
     for subdir in os.listdir("./PINS"):
         name = subdir[5:]
@@ -64,6 +64,7 @@ def prepare_data():
     print(len(labels), len(imgpaths))
 
     return labels, imgpaths, names
+
 
 def get_batch(data, batch_size, idx, isImgPath=False):
     """data에서 batch_size * idx ~ batch_size * (idx+1)만큼 잘라서 리턴
