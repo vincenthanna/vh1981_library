@@ -72,11 +72,14 @@ TL_MARGIN = 0.2  # The minimum distance margin
 
 
 def bh_triplet_loss(dists, labels):
-    """triplet loss를 계산한다.
-    :param dists: 이미지들 간의 차이값이 2차원 행렬로 되어 있음.
-    :param labels: mask 만들 때 같다/아니다 정보만 사용하므로 index만 넘기는 것이 훨씬 간편한다.
-    :return:
     """
+    입력된 이미지들에 대해 각각,
+        furthest_positive : 가장 큰 차이를 지닌 같은값
+        closest_negative : 가장 작은 차이를 지닌 다른값
+    을 구하고 furthest_positive - closest_negative 값을 반환
+
+    """
+    
     # Defines the "batch hard" triplet loss function.
     print("labels.shape", labels.shape)
     same_identity_mask = tf.equal(tf.expand_dims(labels, axis=1),
@@ -97,6 +100,7 @@ def bh_triplet_loss(dists, labels):
     (dists, negative_mask)에서 element하나씩 뽑아서 lambda식에 적용한다.
     =>한 행씩 masking해서 negative값만 남기고 가장작은 값만 추린다.
     [None,]의 1차원 값 배열만 남는다.(furthest_positive도 reduce_max로 동일.)
+    의미 : 각각의 image에 대해 다른 이미지들 중 값이 가장 작은 값만 남긴다.
     """
     closest_negative = tf.map_fn(lambda x: tf.reduce_min(tf.boolean_mask(x[0], x[1])),
                                  (dists, negative_mask), tf.float32)
@@ -177,7 +181,7 @@ with tf.Session() as sess:
     epochs = 10
     # Train for epochs
     for i in range(epochs):
-        data, labels = get_batch(train_set, 8)   
+        data, labels = get_batch(train_set, 8)
 
         feed_dict = {Images: data, Labels: labels}
 

@@ -4,7 +4,6 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
-
 from keras.preprocessing.image import ImageDataGenerator
 
 # pyplot 한글 출력
@@ -22,6 +21,8 @@ pyplot에 기본 설정된 폰트가 한글을 지원하지 않아서 title의 �
 font_name = "NanumGothic"
 matplotlib.rc('font', family=font_name)
 
+debug = False
+
 
 def prepare_data():
     names = {}
@@ -29,21 +30,19 @@ def prepare_data():
     for subdir in os.listdir("./PINS"):
         name = subdir[5:]
         names[name] = idx
-        idx = idx + 1
-    print(names)
+        idx = idx + 1    
 
     labels = []
     imgpaths = []
 
     for subdir in os.listdir("./PINS"):
-        name = subdir[5:]
-        # print(name)
-        idx = names[name]
-        print(idx)
+        name = subdir[5:]        
+        idx = names[name]        
         cur_dir = "./PINS/" + subdir
         files = [os.path.join(cur_dir, f) for f in os.listdir(cur_dir)
                  if os.path.isfile( os.path.join(cur_dir, f) ) and (f.find("jpg") > 0 or f.find("jpeg") > 0)]
-        print("len(files):", len(files))
+        if debug:
+            print("len(files):", len(files))
 
         labels.extend([idx for i in range(len(files))])
         imgpaths.extend(files)
@@ -61,7 +60,8 @@ def prepare_data():
         #     # plt.show()
         #     images.append(img)
 
-    print(len(labels), len(imgpaths))
+    if debug:
+        print(len(labels), len(imgpaths))
 
     return labels, imgpaths, names
 

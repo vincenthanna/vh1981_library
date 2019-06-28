@@ -4,6 +4,7 @@ import tensorflow as tf
 from tensorflow.layers import max_pooling2d, conv2d, batch_normalization, flatten, dense
 from tensorflow.nn import relu
 
+
 def all_diffs(a, b):
     # Returns a tensor of all combinations of a - b
     print("shapes:", a.shape, b.shape)
@@ -22,7 +23,10 @@ TL_MARGIN = 0.2  # The minimum distance margin
 
 
 def triplet_loss(dists, labels):
-    # Defines the "batch hard" triplet loss function.
+    """batch 이미지들에 대한 triplet loss값들을 리턴
+    입력된 이미지들에 대해 각각 차이가 가장 큰 positive와 가장 작은 negative을 구해서
+    차이값을 구해서 리턴
+    """
     print("labels.shape", labels)
     same_identity_mask = tf.equal(tf.expand_dims(labels, axis=1),
                                   tf.expand_dims(labels, axis=0))
@@ -35,9 +39,11 @@ def triplet_loss(dists, labels):
     positive_mask = tf.logical_xor(same_identity_mask,
                                    tf.eye(tf.shape(labels)[0], dtype=tf.bool))
 
-    furthest_positive = tf.reduce_max(dists * tf.cast(positive_mask, tf.float32), axis=1)
-    closest_negative = tf.map_fn(lambda x: tf.reduce_min(tf.boolean_mask(x[0], x[1])),
-                                 (dists, negative_mask), tf.float32)
+    furthest_positive = tf.reduce_max(
+        dists * tf.cast(positive_mask, tf.float32), axis=1)
+    closest_negative = tf.map_fn(
+        lambda x: tf.reduce_min(tf.boolean_mask(x[0], x[1])),
+        (dists, negative_mask), tf.float32)
 
     diff = furthest_positive - closest_negative
 
@@ -56,8 +62,9 @@ def face_recognition_model(images):
         tensor layer object
     """
 
-    h = conv2d(images, filters=32, kernel_size=(3,3), strides=(2, 2), activation=relu)
-    h = max_pooling2d(h, pool_size=(2, 2), strides=(1,1))
+    h = conv2d(
+        images, filters=32, kernel_size=(3, 3), strides=(2, 2), activation='relu')
+    h = max_pooling2d(h, pool_size=(2, 2), strides=(1, 1))
     h = batch_normalization(h, name='bn1')
 
     h = conv2d(h, filters=64, kernel_size=(3, 3), strides=(2, 2), activation='relu')
