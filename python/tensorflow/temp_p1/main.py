@@ -34,19 +34,18 @@ batch_size = 400
 total_data_cnt = len(total_imgpaths)
 
 with tf.Session() as session:
-    session.run(tf.global_variables_initializer())
+    session.run(tf.compat.v1.global_variables_initializer())
     for epoch in range(epochs):
         total_batch = int(total_data_cnt / batch_size)
         for i in range(total_batch):
             labels = get_batch(total_labels, batch_size=batch_size, idx=i)
             images = get_batch(total_imgpaths, batch_size=batch_size, idx=i, isImgPath=True)
-            #print(labels)            
-            c, _, tval = session.run([cost, optimizer, hypothesis], feed_dict={tImages: images, tLabels: labels})
-            print(c.shape)
-            #print("batch", i, "cost=", c)
+            c, _ = session.run([cost, optimizer], feed_dict={tImages: images, tLabels: labels})
+            # print(c.shape)
+            print("batch", i, "cost=", c)
             
-            print("tval:")
-            print(tval)
+            # print("tval:")
+            # print(tval)
             
 
 

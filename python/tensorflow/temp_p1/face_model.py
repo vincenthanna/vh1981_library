@@ -1,7 +1,10 @@
 import numpy as np
 import os
 import tensorflow as tf
-from tensorflow.layers import max_pooling2d, conv2d, batch_normalization, flatten, dense
+
+# from tensorflow.nn import conv2d, max_pool2d
+
+from tensorflow.keras.layers import Conv2D, MaxPool2D, Flatten, Dense
 from tensorflow.nn import relu
 
 
@@ -62,25 +65,22 @@ def face_recognition_model(images):
         tensor layer object
     """
 
-    h = conv2d(
-        images, filters=32, kernel_size=(3, 3), strides=(2, 2), activation='relu')
-    h = max_pooling2d(h, pool_size=(2, 2), strides=(1, 1))
-    h = batch_normalization(h, name='bn1')
+    h = Conv2D(filters=32, kernel_size=(3, 3), strides=(2, 2), activation='relu')(images)
+    h = MaxPool2D(pool_size=(2, 2), strides=(1, 1))(h)
 
-    h = conv2d(h, filters=64, kernel_size=(3, 3), strides=(2, 2), activation='relu')
-    h = batch_normalization(h, name='bn2')
+    h = Conv2D(filters=64, kernel_size=(3, 3), strides=(2, 2), activation='relu')(h)
 
-    h = conv2d(h, filters=128, kernel_size=(3, 3), strides=(2, 2), activation='relu')
-    h = batch_normalization(h, name='bn3')
+    h = Conv2D(filters=128, kernel_size=(3, 3), strides=(2, 2), activation='relu')(h)
 
-    h = conv2d(h, filters=256, kernel_size=(3, 3), strides=(2, 2), activation='relu')
-    h = batch_normalization(h, name='bn4')
+    h = Conv2D(filters=256, kernel_size=(3, 3), strides=(2, 2), activation='relu')(h)
 
-    h = flatten(h)
+    h = Flatten()(h)
 
-    h = dense(h, 512, activation='relu')
-    h = dense(h, 256, activation='relu')
+    h = Dense(512, activation='relu')(h)
+    h = Dense(256, activation='relu')(h)
 
-    hypothesis = dense(h, 128, activation='softmax', name='prediction')
+    hypothesis = Dense(
+        128, activation=None,
+        kernel_initializer=tf.truncated_normal_initializer, name='prediction')(h)
 
     return hypothesis
